@@ -14,28 +14,16 @@ data "aws_ami" "amazon_linux_2023" {
   }
 }
 
-# Generate an SSH key pair and persist the private key locally.
-# The file terraform/deploy-key.pem is used by scripts/deploy.sh.
-resource "tls_private_key" "deploy" {
-  algorithm = "RSA"
-  rsa_bits  = 4096
-}
-
-resource "aws_key_pair" "deploy" {
-  key_name   = "${var.app_name}-deploy-key"
-  public_key = tls_private_key.deploy.public_key_openssh
-}
-
-resource "local_sensitive_file" "private_key" {
-  content         = tls_private_key.deploy.private_key_pem
-  filename        = "${path.module}/deploy-key.pem"
-  file_permission = "0600"
+# Reference the existing key pair — do not regenerate it.
+# The private key (deploy-key.pem) must be kept manually outside of Terraform.
+data "aws_key_pair" "deploy" {
+  key_name = "${var.app_name}-deploy-key"
 }
 
 resource "aws_instance" "app" {
   ami           = data.aws_ami.amazon_linux_2023.id
   instance_type = var.instance_type
-  key_name      = aws_key_pair.deploy.key_name
+  key_name      = data.aws_key_pair.deploy.key_name
 
   vpc_security_group_ids      = [aws_security_group.app.id]
   subnet_id                   = tolist(data.aws_subnets.default.ids)[0]

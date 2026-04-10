@@ -13,3 +13,5 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 crash.log
+/terraform.tfstate.1775820672.backup
+/recovery-key.pem
