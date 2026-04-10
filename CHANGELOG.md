@@ -5,6 +5,7 @@ All notable changes to the FPL Organisation Tracker are documented here.
 ## vNEXT
 
 ### New Features
+- **Wall of Shame** — New dedicated page surfacing the season's most spectacular failures as permanent trophy cards; six awards updated every gameweek: The Bench Warmer (most bench pts all season), The Masochist Medal (most pts paid in transfer hits), The Wooden Spoon (lowest single GW score), The Bonfire of Vanities (worst single-GW bench waste), The Armband of Doom (worst captain blank by absolute pts), and The Regret Machine (worst individual transfer — shows the player sold, the player bought, and the pts delta); winner names link to their member profile; added to the sidebar under the Season section
 - **Member registration status in Admin** — The Members list on the Admin page now shows whether each member has registered on the app and when; registered members display their registration date in green alongside their last login date; unregistered members show "Not registered" in muted text; `lastLoginAt` is stamped on the User record on every successful login
 
 ---
