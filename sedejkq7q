@@ -1,0 +1,118 @@
+# Changelog
+
+All notable changes to the FPL Organisation Tracker are documented here.
+
+---
+
+## v1.5.5 — 2026-04-09
+
+### New Features
+- **Mobile-friendly layout** — Responsive design across all pages; sidebar becomes a slide-in drawer on mobile with a hamburger menu button in the top bar
+
+### Improvements
+- **Changelog versioning** — Version number is now stamped automatically by `deploy.sh`; write entries under `## vNEXT` and the correct version and date are applied at deploy time
+- **Deploy version bump** — Fixed `node: command not found` error in WSL by reading the new version directly from `npm version` output instead of calling `node`
+
+---
+
+## v1.5.3 — 2026-04-09
+
+### New Features
+- **League position chart** — Line chart on the landing page showing each manager's org position across every gameweek; one coloured line per manager with an interactive tooltip displaying full names and positions
+- **Sidebar fixed layout** — Sidebar no longer scrolls with the main content; stays in place at all times
+
+### Improvements
+- **AI verdicts — third person** — Performance report verdicts are now written about managers (not to them), suitable for display to the whole group
+- **AI verdicts — auto-generated** — Verdicts generate automatically on first page load each gameweek with no manual button required; cached in browser storage and reused on subsequent visits
+- **AI verdicts — sync trigger** — Clicking "Sync from League" on the Admin page now regenerates and caches fresh verdicts immediately
+- **Chart tooltip full names** — Hovering the league position chart now shows each manager's full name including surname
+
+---
+
+## v1.5.2 — 2026-04-09
+
+### New Features
+- **League position chart** — Line chart on the landing page showing each manager's org position across every gameweek; one coloured line per manager with an interactive tooltip displaying full names and positions
+- **Sidebar fixed layout** — Sidebar no longer scrolls with the main content; stays in place at all times
+
+### Improvements
+- **AI verdicts — third person** — Performance report verdicts are now written about managers (not to them), suitable for display to the whole group
+- **AI verdicts — auto-generated** — Verdicts generate automatically on first page load each gameweek with no manual button required; cached in browser storage and reused on subsequent visits
+- **AI verdicts — sync trigger** — Clicking "Sync from League" on the Admin page now regenerates and caches fresh verdicts immediately
+- **Chart tooltip full names** — Hovering the league position chart now shows each manager's full name including surname
+
+---
+
+## v1.5.1 — 2026-04-09
+
+### Improvements
+- **Release notes link** — Sidebar footer now shows "Release notes" label alongside the version number for clarity
+
+---
+
+## v1.5.0 — 2026-04-09
+
+### New Features
+- **Landing page** — New home page with org overview, top-5 mini leaderboard, quick-access links, and a randomly selected FPL quote that refreshes on click
+- **GW Performance Report** — Expandable section on the landing page with AI-generated, EnergyOne-themed verdicts for each manager's gameweek performance; generated once per gameweek and cached locally
+- **AI integration (Groq)** — Free-tier AI verdict generation via Groq's `llama-3.1-8b-instant` model; falls back to built-in verdicts if API key is not configured
+- **Home nav item** — Sidebar now includes a Home link as the first navigation item
+
+---
+
+## v1.4.0 — 2026-04-02
+
+### New Features
+- **Org chip usage table** — Shows which chips each member has used and which are still available, using the FPL bootstrap chip windows to correctly distinguish H1 vs H2 wildcards
+
+### Bug Fixes
+- **Chip availability logic** — Fixed incorrect chip status when the same chip type is available in two separate windows (e.g. wildcard H1 and H2 in 2025/26)
+
+---
+
+## v1.3.0 — 2026-03-28
+
+### New Features
+- **AWS deployment via Terraform** — One-command infrastructure provisioning on EC2 t2.micro (free tier); includes Nginx reverse proxy, PM2 process manager, and SQLite persistence
+- **Deploy script** (`scripts/deploy.sh`) — Automated build, upload, migration, and restart pipeline; supports `--skip-build` flag for WSL 1 users who build from Windows
+
+### Bug Fixes
+- **HTTP cookie security** — Admin session cookie no longer marked `secure` on plain HTTP deployments; uses `x-forwarded-proto` header to detect HTTPS correctly
+- **Standings crash on unconfigured org** — Replaced client-side crash with a friendly amber banner linking to Admin setup
+- **Nginx 403 on static assets** — Fixed home directory permissions so Nginx can traverse `/home/ec2-user/app`
+- **Prisma binary on Linux** — Resolved cross-platform engine mismatch by copying the Linux binary into the standalone output before upload
+
+---
+
+## v1.2.0 — 2026-03-20
+
+### New Features
+- **Admin PIN protection** — All mutating admin operations (org setup, member sync, member management) are gated behind a configurable PIN stored as `ADMIN_PIN` in the environment
+- **PIN gate UI** — Admin page shows a PIN entry form when locked; authenticated state is held in an HTTP-only session cookie
+- **Stateless session tokens** — Admin tokens are HMAC-SHA256 derived from the PIN; no database session storage required
+
+---
+
+## v1.1.0 — 2026-03-10
+
+### New Features
+- **Standings page** — Gameweek leaderboard with rank change indicators, chip badges, org average, and global FPL average; auto-refreshes every 60 seconds
+- **Fixtures page** — Upcoming fixtures with FDR difficulty ratings per team
+- **Ownership page** — Shows which players are owned across the org with ownership percentages
+- **Member profile pages** — Per-manager view with points history and squad details
+- **Suggestions — Captain** — AI-assisted captain recommendation based on fixtures and ownership
+- **Suggestions — Chips** — Chip availability and recommended usage timing per member
+- **Suggestions — Transfers** — Differential transfer recommendations based on org ownership gaps
+- **Gameweek selector** — Navigate historical gameweeks on the standings page
+
+---
+
+## v1.0.0 — 2026-03-01
+
+### Initial Release
+- **Organisation setup** — Configure an FPL mini-league or manually add manager IDs
+- **Member sync** — Pull manager names and team names directly from the FPL API
+- **Admin panel** — Web UI for org configuration, member management, and manual sync
+- **SQLite database** — Lightweight persistence via Prisma with automatic migrations on deploy
+- **Next.js App Router** — Full-stack TypeScript application with server and client components
+- **Tailwind CSS design system** — Consistent UI with FPL-inspired purple gradient sidebar

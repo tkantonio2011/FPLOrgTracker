@@ -1,0 +1,50 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider      = "prisma-client-js"
+  // "native" for local dev; "rhel-openssl-3.0.x" for Amazon Linux 2023 (EC2)
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Organisation {
+  id            String   @id @default(cuid())
+  name          String
+  miniLeagueId  Int?     @unique @map("mini_league_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  members       Member[]
+
+  @@map("organisations")
+}
+
+model Member {
+  id                  String       @id @default(cuid())
+  managerId           Int          @unique @map("manager_id")
+  displayName         String?      @map("display_name")
+  teamName            String?      @map("team_name")
+  source              String       @default("manual") // "league" | "manual"
+  isActive            Boolean      @default(true) @map("is_active")
+  pointsDeductionPerGw Int         @default(0) @map("points_deduction_per_gw")
+  addedAt             DateTime     @default(now()) @map("added_at")
+  organisationId      String       @map("organisation_id")
+  organisation        Organisation @relation(fields: [organisationId], references: [id])
+  user                User?
+
+  @@map("members")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  managerId    Int       @unique @map("manager_id")
+  passwordHash String    @map("password_hash")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  lastLoginAt  DateTime? @map("last_login_at")
+  member       Member    @relation(fields: [managerId], references: [managerId])
+
+  @@map("users")
+}
