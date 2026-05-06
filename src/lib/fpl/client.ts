@@ -69,7 +69,7 @@ export class FplApiError extends Error {
 // Cache TTLs (seconds)
 const TTL = {
   BOOTSTRAP: 3600, // 1 hour — player prices/ownership update daily
-  FIXTURES: 86400, // 24 hours — fixture schedule rarely changes
+  FIXTURES: 60, // 60 seconds — scores update during active gameweek
   LIVE: 60, // 60 seconds — live scoring
   HISTORY: 3600, // 1 hour during active GW
   PICKS_ACTIVE: 120, // 2 minutes for active GW picks

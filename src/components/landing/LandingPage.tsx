@@ -222,6 +222,20 @@ function RankArrow({ change }: { change: number }) {
   return <span className="text-slate-300 text-xs">—</span>;
 }
 
+interface MeData {
+  managerId: number;
+  displayName: string;
+  teamName: string;
+}
+
+function greeting(displayName: string): string {
+  const firstName = displayName.split(" ")[0];
+  const hour = new Date().getHours();
+  if (hour < 12) return `Good morning, ${firstName}`;
+  if (hour < 18) return `Good afternoon, ${firstName}`;
+  return `Good evening, ${firstName}`;
+}
+
 export function LandingPage() {
   const [quoteIdx, setQuoteIdx] = useState(() => Math.floor(Math.random() * QUOTES.length));
   const [reportOpen, setReportOpen] = useState(false);
@@ -229,6 +243,30 @@ export function LandingPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const generatedForGw = useRef<number | null>(null);
+
+  const { data: meData } = useQuery<MeData>({
+    queryKey: ["me"],
+    queryFn: () => fetch("/api/auth/me").then((r) => r.ok ? r.json() : null),
+    staleTime: Infinity,
+    retry: false,
+  });
+
+  const { data: myGwStats } = useQuery<{
+    gameweekId: number;
+    gwScore: number;
+    totalPoints: number;
+    benchPts: number;
+    captainName: string | null;
+    captainPts: number;
+    chipUsed: string | null;
+  }>({
+    queryKey: ["me-gw-stats"],
+    queryFn: () => fetch("/api/me/gw-stats").then((r) => r.ok ? r.json() : null),
+    enabled: !!meData,
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+    retry: false,
+  });
 
   const { data: gwData } = useQuery<GameweeksData>({
     queryKey: ["gameweeks"],
@@ -272,6 +310,9 @@ export function LandingPage() {
 
   const top5 = standingsData?.standings.slice(0, 5) ?? [];
   const leader = standingsData?.standings[0];
+  const myStanding = meData
+    ? standingsData?.standings.find((s) => s.managerId === meData.managerId)
+    : undefined;
 
   // Sort by GW points descending for the performance report
   const gwRanked = standingsData
@@ -350,12 +391,74 @@ export function LandingPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-900">
-          {orgData?.name ?? "Dashboard"}
+          {meData ? greeting(meData.displayName) : (orgData?.name ?? "Dashboard")}
         </h1>
         <p className="text-sm text-slate-400 mt-0.5">
-          {currentGw ? `Gameweek ${currentGw} · ` : ""}FPL Organisation Overview
+          {meData
+            ? `${meData.teamName}${currentGw ? ` · GW${currentGw}` : ""} · ${orgData?.name ?? ""}`
+            : `${currentGw ? `Gameweek ${currentGw} · ` : ""}FPL Organisation Overview`}
         </p>
       </div>
+
+      {/* Personal GW hero card */}
+      {meData && (myGwStats || myStanding) && (
+        <div className="bg-white border border-slate-200/80 rounded-xl shadow-card overflow-hidden">
+          <div className="px-5 py-3 bg-[#37003c] flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#00ff87]">Your Gameweek {myGwStats?.gameweekId ?? currentGw}</span>
+            {myGwStats?.chipUsed && (
+              <span className="text-[10px] font-bold uppercase tracking-wide bg-[#00ff87] text-[#37003c] px-2 py-0.5 rounded-full">
+                {CHIP_LABELS[myGwStats.chipUsed] ?? myGwStats.chipUsed}
+              </span>
+            )}
+          </div>
+          <div className="px-5 py-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {/* GW Score */}
+            <div className="flex flex-col">
+              <span className="text-xs text-slate-400 font-medium mb-0.5">GW Score</span>
+              <span className="text-3xl font-extrabold text-slate-900 leading-none">
+                {myGwStats?.gwScore ?? myStanding?.gameweekPoints ?? "—"}
+              </span>
+              <span className="text-xs text-slate-400 mt-0.5">pts</span>
+            </div>
+
+            {/* Org rank */}
+            <div className="flex flex-col">
+              <span className="text-xs text-slate-400 font-medium mb-0.5">Org Rank</span>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-3xl font-extrabold text-slate-900 leading-none">
+                  {myStanding?.rank ?? "—"}
+                </span>
+                {myStanding && myStanding.rankChange !== 0 && (
+                  <span className={`text-sm font-bold ${myStanding.rankChange > 0 ? "text-emerald-500" : "text-red-400"}`}>
+                    {myStanding.rankChange > 0 ? `▲${myStanding.rankChange}` : `▼${Math.abs(myStanding.rankChange)}`}
+                  </span>
+                )}
+              </div>
+              <span className="text-xs text-slate-400 mt-0.5">of {standingsData?.standings.length ?? "—"}</span>
+            </div>
+
+            {/* Captain */}
+            <div className="flex flex-col">
+              <span className="text-xs text-slate-400 font-medium mb-0.5">Captain</span>
+              <span className="text-base font-bold text-slate-900 leading-tight truncate">
+                {myGwStats?.captainName ?? "—"}
+              </span>
+              <span className="text-xs text-slate-400 mt-0.5">
+                {myGwStats?.captainPts != null ? `${myGwStats.captainPts} pts` : "—"}
+              </span>
+            </div>
+
+            {/* Bench pts */}
+            <div className="flex flex-col">
+              <span className="text-xs text-slate-400 font-medium mb-0.5">Bench</span>
+              <span className="text-3xl font-extrabold leading-none" style={{ color: (myGwStats?.benchPts ?? 0) > 8 ? "#dc2626" : "#64748b" }}>
+                {myGwStats?.benchPts ?? "—"}
+              </span>
+              <span className="text-xs text-slate-400 mt-0.5">pts left</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Quote card */}
       <div className="bg-[#37003c] rounded-xl px-5 py-4 flex items-start justify-between gap-4 shadow-card">
@@ -399,7 +502,7 @@ export function LandingPage() {
 
       {/* Pre-GW Horoscope */}
       {standingsData && standingsData.standings.length > 0 && (
-        <GwHoroscope standingsData={standingsData} />
+        <GwHoroscope standingsData={standingsData} currentManagerId={meData?.managerId} />
       )}
 
       {/* Post-GW Tribunal */}
@@ -449,31 +552,57 @@ export function LandingPage() {
             </div>
           )}
 
-          {top5.length > 0 && (
-            <ul className="divide-y divide-slate-50">
-              {top5.map((entry) => (
-                <li key={entry.managerId}>
-                  <Link
-                    href={`/members/${entry.managerId}`}
-                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50/60 transition-colors duration-100"
-                  >
-                    <RankBadge rank={entry.rank} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-800 truncate">{entry.displayName}</p>
-                      <p className="text-xs text-slate-400 truncate">{entry.teamName}</p>
+          {top5.length > 0 && (() => {
+            const myManagerId = meData?.managerId;
+            const myInTop5 = top5.some((e) => e.managerId === myManagerId);
+            const myRowEntry = !myInTop5 && myManagerId
+              ? standingsData?.standings.find((e) => e.managerId === myManagerId)
+              : undefined;
+
+            const renderRow = (entry: typeof top5[0], isMe: boolean) => (
+              <li key={entry.managerId}>
+                <Link
+                  href={`/members/${entry.managerId}`}
+                  className={`flex items-center gap-3 px-4 py-2.5 transition-colors duration-100 ${
+                    isMe
+                      ? "bg-[#37003c]/5 border-l-2 border-[#37003c] hover:bg-[#37003c]/10"
+                      : "hover:bg-slate-50/60"
+                  }`}
+                >
+                  <RankBadge rank={entry.rank} />
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-medium truncate ${isMe ? "text-[#37003c]" : "text-slate-800"}`}>
+                      {entry.displayName}{isMe && <span className="ml-1.5 text-[10px] font-bold uppercase tracking-wide text-[#37003c]/60">You</span>}
+                    </p>
+                    <p className="text-xs text-slate-400 truncate">{entry.teamName}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-semibold text-slate-800 tabular-nums">{entry.totalPoints} <span className="text-xs font-normal text-slate-400">pts</span></p>
+                    <div className="flex items-center justify-end gap-1 mt-0.5">
+                      <span className="text-xs text-slate-400 tabular-nums">GW {entry.gameweekPoints}</span>
+                      <RankArrow change={entry.rankChange} />
                     </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-sm font-semibold text-slate-800 tabular-nums">{entry.totalPoints} <span className="text-xs font-normal text-slate-400">pts</span></p>
-                      <div className="flex items-center justify-end gap-1 mt-0.5">
-                        <span className="text-xs text-slate-400 tabular-nums">GW {entry.gameweekPoints}</span>
-                        <RankArrow change={entry.rankChange} />
-                      </div>
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
+                  </div>
+                </Link>
+              </li>
+            );
+
+            return (
+              <ul className="divide-y divide-slate-50">
+                {top5.map((entry) => renderRow(entry, entry.managerId === myManagerId))}
+                {myRowEntry && (
+                  <>
+                    <li className="px-4 py-1.5 flex items-center gap-2">
+                      <div className="flex-1 border-t border-dashed border-slate-200" />
+                      <span className="text-[10px] text-slate-300 font-medium shrink-0">your position</span>
+                      <div className="flex-1 border-t border-dashed border-slate-200" />
+                    </li>
+                    {renderRow(myRowEntry, true)}
+                  </>
+                )}
+              </ul>
+            );
+          })()}
         </div>
 
         {/* Quick links */}
@@ -520,45 +649,67 @@ export function LandingPage() {
               AI generation failed: {aiError}
             </div>
           )}
-          {reportOpen && <ul className="divide-y divide-slate-50">
-            {gwRanked.map((entry, idx) => {
-              const gwRank = idx + 1;
-              const verdict = aiVerdicts[entry.managerId]
-                ?? gwVerdict(entry, gwRank, gwRanked.length, standingsData.orgAverageGwPoints, standingsData.globalAverageGwPoints);
-              const vsOrg = entry.gameweekPoints - standingsData.orgAverageGwPoints;
-              const isUp = vsOrg > 3;
-              const isDown = vsOrg < -3;
-              return (
-                <li key={entry.managerId} className="px-4 py-3.5 flex items-start gap-3">
-                  <div className={`mt-0.5 w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${
-                    gwRank === 1 ? "bg-amber-400 text-white" : "bg-slate-100 text-slate-500"
-                  }`}>
-                    {gwRank}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-semibold text-slate-800">{entry.displayName}</span>
-                      {entry.chipUsed && (
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 uppercase tracking-wide">
-                          {CHIP_LABELS[entry.chipUsed] ?? entry.chipUsed}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">{verdict}</p>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <span className={`text-sm font-bold tabular-nums ${isUp ? "text-emerald-600" : isDown ? "text-red-500" : "text-slate-700"}`}>
-                      {entry.gameweekPoints}
-                    </span>
-                    <span className="text-xs text-slate-400 ml-0.5">pts</span>
-                    <p className={`text-[11px] mt-0.5 tabular-nums ${vsOrg > 0 ? "text-emerald-500" : vsOrg < 0 ? "text-red-400" : "text-slate-400"}`}>
-                      {vsOrg > 0 ? "+" : ""}{vsOrg} vs org
-                    </p>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>}
+          {reportOpen && (() => {
+            const myManagerId = meData?.managerId;
+            // Put the logged-in user first, keep GW rank order for everyone else
+            const sorted = myManagerId
+              ? [
+                  ...gwRanked.filter((e) => e.managerId === myManagerId),
+                  ...gwRanked.filter((e) => e.managerId !== myManagerId),
+                ]
+              : gwRanked;
+
+            return (
+              <>
+                <ul className="divide-y divide-slate-50">
+                  {sorted.map((entry) => {
+                    const gwRank = gwRanked.findIndex((e) => e.managerId === entry.managerId) + 1;
+                    const isMe = entry.managerId === myManagerId;
+                    const verdict = aiVerdicts[entry.managerId]
+                      ?? gwVerdict(entry, gwRank, gwRanked.length, standingsData.orgAverageGwPoints, standingsData.globalAverageGwPoints);
+                    const vsOrg = entry.gameweekPoints - standingsData.orgAverageGwPoints;
+                    const isUp = vsOrg > 3;
+                    const isDown = vsOrg < -3;
+                    return (
+                      <li
+                        key={entry.managerId}
+                        className={`px-4 py-3.5 flex items-start gap-3 ${isMe ? "bg-[#37003c]/5 border-l-2 border-[#37003c]" : ""}`}
+                      >
+                        <div className={`mt-0.5 w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${
+                          gwRank === 1 ? "bg-amber-400 text-white" : isMe ? "bg-[#37003c] text-white" : "bg-slate-100 text-slate-500"
+                        }`}>
+                          {gwRank}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`text-sm font-semibold ${isMe ? "text-[#37003c]" : "text-slate-800"}`}>
+                              {entry.displayName}
+                              {isMe && <span className="ml-1.5 text-[10px] font-bold uppercase tracking-wide text-[#37003c]/60">You</span>}
+                            </span>
+                            {entry.chipUsed && (
+                              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 uppercase tracking-wide">
+                                {CHIP_LABELS[entry.chipUsed] ?? entry.chipUsed}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-500 mt-1 leading-relaxed">{verdict}</p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <span className={`text-sm font-bold tabular-nums ${isUp ? "text-emerald-600" : isDown ? "text-red-500" : "text-slate-700"}`}>
+                            {entry.gameweekPoints}
+                          </span>
+                          <span className="text-xs text-slate-400 ml-0.5">pts</span>
+                          <p className={`text-[11px] mt-0.5 tabular-nums ${vsOrg > 0 ? "text-emerald-500" : vsOrg < 0 ? "text-red-400" : "text-slate-400"}`}>
+                            {vsOrg > 0 ? "+" : ""}{vsOrg} vs org
+                          </p>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            );
+          })()}
           {reportOpen && (
             <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50/60 text-xs text-slate-400">
               Org avg: <strong className="text-slate-600">{standingsData.orgAverageGwPoints} pts</strong>

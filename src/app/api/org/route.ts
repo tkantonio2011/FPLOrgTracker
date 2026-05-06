@@ -24,6 +24,7 @@ export async function GET() {
       id: org.id,
       name: org.name,
       miniLeagueId: org.miniLeagueId,
+      digestPrompt: org.digestPrompt ?? null,
       members: org.members.map((m) => ({
         id: m.id,
         managerId: m.managerId,
@@ -31,6 +32,7 @@ export async function GET() {
         teamName: m.teamName,
         source: m.source,
         isActive: m.isActive,
+        email: m.email ?? null,
         registeredAt: m.user?.createdAt ?? null,
         lastLoginAt: m.user?.lastLoginAt ?? null,
       })),

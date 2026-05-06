@@ -48,7 +48,7 @@ function StarIcon({ className }: { className?: string }) {
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export function GwHoroscope({ standingsData }: { standingsData: StandingsData }) {
+export function GwHoroscope({ standingsData, currentManagerId }: { standingsData: StandingsData; currentManagerId?: number }) {
   const [horoscopes, setHoroscopes] = useState<HoroscopeEntry[] | null>(null);
   const [nextGw, setNextGw]         = useState<number | null>(null);
   const [loading, setLoading]       = useState(false);
@@ -68,6 +68,7 @@ export function GwHoroscope({ standingsData }: { standingsData: StandingsData })
         const parsed = JSON.parse(cached) as { horoscopes: HoroscopeEntry[]; nextGw: number };
         setHoroscopes(parsed.horoscopes);
         setNextGw(parsed.nextGw);
+        if (currentManagerId) setOpen(true);
         return;
       }
     } catch { /* ignore */ }
@@ -94,6 +95,7 @@ export function GwHoroscope({ standingsData }: { standingsData: StandingsData })
         if (!json.horoscopes || json.horoscopes.length === 0) return;
         setHoroscopes(json.horoscopes);
         setNextGw(json.nextGw ?? gwId + 1);
+        if (currentManagerId) setOpen(true);
         try {
           localStorage.setItem(cacheKey, JSON.stringify({ horoscopes: json.horoscopes, nextGw: json.nextGw ?? gwId + 1 }));
           for (let g = 1; g < gwId; g++) {
@@ -164,17 +166,26 @@ export function GwHoroscope({ standingsData }: { standingsData: StandingsData })
       </button>
 
       {/* Body — collapsible */}
-      {open && horoscopes && (
+      {open && horoscopes && (() => {
+        const sorted = currentManagerId
+          ? [
+              ...horoscopes.filter((h) => h.managerId === currentManagerId),
+              ...horoscopes.filter((h) => h.managerId !== currentManagerId),
+            ]
+          : horoscopes;
+
+        return (
         <div className="border-t border-indigo-900/30 px-4 pb-5 pt-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {horoscopes.map((h) => {
+            {sorted.map((h) => {
+              const isMe    = h.managerId === currentManagerId;
               const manager    = standingsData.standings.find((m) => m.managerId === h.managerId);
               const signColour = SIGN_COLOURS[h.sign] ?? "text-indigo-300";
               return (
                 <div
                   key={h.managerId}
-                  className="rounded-lg px-3.5 py-3 border border-indigo-800/25"
-                  style={{ background: "rgba(79, 70, 229, 0.07)" }}
+                  className={`rounded-lg px-3.5 py-3 border ${isMe ? "border-indigo-500/60 col-span-1 sm:col-span-2" : "border-indigo-800/25"}`}
+                  style={{ background: isMe ? "rgba(99, 102, 241, 0.15)" : "rgba(79, 70, 229, 0.07)" }}
                 >
                   {/* Manager name + sign */}
                   <div className="flex items-center gap-2 mb-1.5">
@@ -182,9 +193,16 @@ export function GwHoroscope({ standingsData }: { standingsData: StandingsData })
                       {h.signEmoji}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <span className="text-xs font-bold text-white/90 block truncate leading-tight">
-                        {manager?.displayName ?? `Manager ${h.managerId}`}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-white/90 truncate leading-tight">
+                          {manager?.displayName ?? `Manager ${h.managerId}`}
+                        </span>
+                        {isMe && (
+                          <span className="text-[10px] font-bold uppercase tracking-wide text-indigo-300 bg-indigo-500/20 px-1.5 py-0.5 rounded-full shrink-0">
+                            You
+                          </span>
+                        )}
+                      </div>
                       <span className={`text-[10px] font-semibold leading-tight ${signColour}`}>
                         {h.sign} · {manager?.teamName ?? ""}
                       </span>
@@ -192,7 +210,7 @@ export function GwHoroscope({ standingsData }: { standingsData: StandingsData })
                   </div>
 
                   {/* Prediction */}
-                  <p className="text-[11px] text-indigo-200/70 leading-relaxed italic">
+                  <p className={`text-[11px] leading-relaxed italic ${isMe ? "text-indigo-200/90" : "text-indigo-200/70"}`}>
                     {h.prediction}
                   </p>
                 </div>
@@ -205,7 +223,8 @@ export function GwHoroscope({ standingsData }: { standingsData: StandingsData })
             Madame FPL · GW{nextGw ?? gwId + 1} Pre-Deadline Oracle · AI-generated cosmic nonsense
           </p>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

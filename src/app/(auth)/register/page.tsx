@@ -8,6 +8,7 @@ export default function RegisterPage() {
   const router = useRouter();
 
   const [managerId,       setManagerId]       = useState("");
+  const [email,           setEmail]           = useState("");
   const [password,        setPassword]        = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error,           setError]           = useState<string | null>(null);
@@ -33,6 +34,7 @@ export default function RegisterPage() {
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({
           managerId:       parseInt(managerId, 10),
+          email:           email.trim() || null,
           password,
           confirmPassword,
         }),
@@ -92,6 +94,23 @@ export default function RegisterPage() {
             />
             <p className="mt-1 text-[11px] text-slate-400">
               Find your ID at fantasy.premierleague.com → Points → the number in the URL
+            </p>
+          </div>
+
+          <div>
+            <label htmlFor="email" className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">
+              Email <span className="normal-case font-normal text-slate-400">(optional)</span>
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              className="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#37003c]/30 focus:border-[#37003c] transition-colors"
+            />
+            <p className="mt-1 text-[11px] text-slate-400">
+              Used to receive the weekly GW digest email. You can update this later.
             </p>
           </div>
 

@@ -2,9 +2,31 @@
 
 All notable changes to the FPL Organisation Tracker are documented here.
 
-## vNEXT
+## v1.6.3 — 2026-04-11
+
+### Bug Fixes
+- **Email digest exhausting Groq daily token quota** — Every click of "Send Digest" was regenerating the AI narrative, consuming tokens even when the content for that GW hadn't changed; the generated digest is now cached in the database against the GW number — subsequent sends for the same GW reuse the cached content and make zero Groq API calls; the cache is automatically bypassed when a new GW is detected
+- **Email digest hitting Groq rate limit (429)** — All N+1 Groq calls (summary + one per manager) were fired in parallel, consuming the entire free-tier 6,000 TPM allowance in a single burst; switched to sequential calls with a 1 s gap between each so cumulative token usage stays within the limit; real Groq error messages are now surfaced in the API response instead of the generic "Check your GROQ_API_KEY" message
+- **Email footer link points to `http://0.0.0.0:3000`** — When running on AWS behind a reverse proxy the request origin resolves to the internal bind address; the digest route now prefers an explicit `APP_URL` environment variable over the request origin; set `APP_URL=http://your-ec2-address` in `.env.production` to fix the footer link in deployed emails
+
+---
+
+## v1.6.2 — 2026-04-10
 
 ### New Features
+- **Weekly Email Digest** — Admin can trigger a GW summary email to all members with a configured email address via a new "Send GW Digest Now" button on the Admin page; email covers the GW winner, loser, best captain, and worst bench, followed by Groq-generated per-manager sections in the style of a deadpan corporate energy market report — each manager gets a custom energy trading nickname (e.g. "The Baseload Bandit"), a creative award title, and 2–3 sentences of dry narrative referencing their actual stats; a full league table and system stress notes round out the email; requires `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, and `SMTP_FROM` environment variables (Resend SMTP supported); the Admin page shows a configuration status banner and lists required vars when SMTP is not set up; gracefully falls back to stat-only content if Groq is not configured; all recipients are BCC'd for privacy
+- **Per-member email addresses** — Each member in the Admin page now has an inline email input; entering an address and clicking Save stores it against that member in the database; the digest is sent only to members with a configured email; email column added to the `Member` table via migration
+- **Configurable digest AI style** — Admin can set a free-text prompt describing the tone and context for the AI-generated digest (e.g. "write like a pub quiz host", "formal cricket commentary"); the prompt is stored on the organisation record and applied to every Groq call; a dedicated Save button with dirty-state tracking appears inline below the textarea; if left blank, the AI defaults to a neutral friendly tone
+- **Email collection at registration** — The registration form now includes an optional email field; if provided, the address is saved to the member record immediately on sign-up and used for the GW digest; existing admins can still set or override a member's email from the Admin page
+### Improvements
+- **Last login time in Admin** — Member last login now shows hours and minutes in addition to the date (e.g. "10 Apr 2026, 14:35")
+
+### Bug Fixes
+- **AI digest name mixing** — The model was writing one manager's narrative under another manager's header when all managers were generated in a single Groq call; fixed by switching to N+1 parallel isolated calls — one summary call (intro, subject, system notes, signoff) plus one dedicated call per manager that only receives that manager's stats and is explicitly instructed not to mention anyone else
+- **Digest sent without AI content** — If Groq was unconfigured or failed, a stat-only fallback email was silently sent; the route now fails with a clear error in both cases and the Send button is disabled when `GROQ_API_KEY` is missing; the Admin page surfaces a Groq configuration warning banner
+- **Digest footer link** — The `{Org} FPL Tracker` text in the email footer is now a clickable link back to the application; the URL is derived from the incoming request origin so it works correctly in all environments without extra configuration
+- **Fixtures scores not showing** — Completed matches in the current gameweek were not displaying results; the server-side FPL fixture cache TTL was 24 hours and the client-side stale time was 1 hour, meaning scores fetched before kickoff were served stale for the rest of the day; fixed by reducing both to 60 seconds and adding a 60-second auto-refresh interval on the Fixtures page when the current gameweek is still in progress
+
 - **Wall of Shame** — New dedicated page surfacing the season's most spectacular failures as permanent trophy cards; six awards updated every gameweek: The Bench Warmer (most bench pts all season), The Masochist Medal (most pts paid in transfer hits), The Wooden Spoon (lowest single GW score), The Bonfire of Vanities (worst single-GW bench waste), The Armband of Doom (worst captain blank by absolute pts), and The Regret Machine (worst individual transfer — shows the player sold, the player bought, and the pts delta); winner names link to their member profile; added to the sidebar under the Season section
 - **Member registration status in Admin** — The Members list on the Admin page now shows whether each member has registered on the app and when; registered members display their registration date in green alongside their last login date; unregistered members show "Not registered" in muted text; `lastLoginAt` is stamped on the User record on every successful login
 

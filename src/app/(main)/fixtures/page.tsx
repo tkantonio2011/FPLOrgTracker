@@ -82,10 +82,13 @@ export default function FixturesPage() {
     staleTime: 300_000,
   });
 
+  const isLiveGw = gwData?.gameweeks.some((gw) => gw.isCurrent && !gw.isFinished) ?? false;
+
   const { data: fixturesData, isLoading, isError } = useQuery<FixturesResponse>({
     queryKey: ["fixtures-all"],
     queryFn: () => fetch("/api/fixtures").then((r) => r.json()),
-    staleTime: 3_600_000,
+    staleTime: 60_000,
+    refetchInterval: isLiveGw ? 60_000 : false,
   });
 
   const currentGw = gwData?.currentGameweek;

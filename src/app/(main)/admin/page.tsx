@@ -12,6 +12,7 @@ interface Member {
   teamName: string | null;
   source: string;
   isActive: boolean;
+  email: string | null;
   registeredAt: string | null;
   lastLoginAt: string | null;
 }
@@ -20,6 +21,7 @@ interface Org {
   id: string;
   name: string;
   miniLeagueId: number | null;
+  digestPrompt: string | null;
   members: Member[];
 }
 
@@ -94,16 +96,74 @@ function PinGate({ onUnlock }: { onUnlock: () => void }) {
   );
 }
 
+// ─── Member Email Input ───────────────────────────────────────────────────────
+function MemberEmailInput({ managerId, initialEmail, onSaved }: { managerId: number; initialEmail: string | null; onSaved: (email: string | null) => void }) {
+  const [email, setEmail] = useState(initialEmail ?? "");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const isDirty = email.trim() !== (initialEmail ?? "");
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/members/${managerId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() || null }),
+      });
+      if (res.ok) {
+        onSaved(email.trim() || null);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-1.5 mt-1">
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => { setEmail(e.target.value); setSaved(false); }}
+        placeholder="Add email for digest"
+        className="flex-1 border border-slate-200 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#37003c]/30 text-slate-700 placeholder-slate-300"
+      />
+      {isDirty && (
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="text-xs font-medium text-[#37003c] hover:text-[#37003c]/70 transition-colors shrink-0 disabled:opacity-50"
+        >
+          {saving ? "…" : "Save"}
+        </button>
+      )}
+      {saved && !isDirty && (
+        <span className="text-xs text-emerald-600 shrink-0">✓</span>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function AdminPage() {
   const [authState, setAuthState] = useState<"loading" | "locked" | "unlocked">("loading");
   const [org, setOrg] = useState<Org | null>(null);
   const [orgName, setOrgName] = useState("");
   const [miniLeagueId, setMiniLeagueId] = useState("");
+  const [digestPrompt, setDigestPrompt] = useState("");
   const [newManagerId, setNewManagerId] = useState("");
   const [status, setStatus] = useState<{ type: "success" | "error"; msg: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [syncLoading, setSyncLoading] = useState(false);
+  const [digestLoading, setDigestLoading] = useState(false);
+  const [emailConfigured, setEmailConfigured] = useState<boolean | null>(null);
+  const [groqConfigured, setGroqConfigured] = useState<boolean | null>(null);
+  const [savedDigestPrompt, setSavedDigestPrompt] = useState("");
+  const [promptSaving, setPromptSaving] = useState(false);
+  const [promptSaved, setPromptSaved] = useState(false);
 
   // Check whether we already have a valid session
   useEffect(() => {
@@ -125,8 +185,17 @@ export default function AdminPage() {
           setOrg(data);
           setOrgName(data.name);
           setMiniLeagueId(data.miniLeagueId?.toString() ?? "");
+          setDigestPrompt(data.digestPrompt ?? "");
+          setSavedDigestPrompt(data.digestPrompt ?? "");
         }
       });
+    fetch("/api/email-digest")
+      .then((r) => r.json())
+      .then((data: { configured: boolean; groqConfigured: boolean }) => {
+        setEmailConfigured(data.configured);
+        setGroqConfigured(data.groqConfigured);
+      })
+      .catch(() => { setEmailConfigured(false); setGroqConfigured(false); });
   }, [authState]);
 
   async function handleSave() {
@@ -136,7 +205,11 @@ export default function AdminPage() {
       const res = await fetch("/api/org/setup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: orgName, miniLeagueId: miniLeagueId ? parseInt(miniLeagueId) : undefined }),
+        body: JSON.stringify({
+          name: orgName,
+          miniLeagueId: miniLeagueId ? parseInt(miniLeagueId) : undefined,
+          digestPrompt: digestPrompt.trim() || null,
+        }),
       });
       if (res.status === 401) { setAuthState("locked"); return; }
       if (!res.ok) throw new Error("Setup failed");
@@ -147,6 +220,8 @@ export default function AdminPage() {
         setOrg(updated);
         setOrgName(updated.name ?? "");
         setMiniLeagueId(updated.miniLeagueId?.toString() ?? "");
+        setDigestPrompt(updated.digestPrompt ?? "");
+        setSavedDigestPrompt(updated.digestPrompt ?? "");
       }
     } catch {
       setStatus({ type: "error", msg: "Failed to save organisation." });
@@ -257,6 +332,60 @@ export default function AdminPage() {
     }
   }
 
+  async function handleSendDigest() {
+    setDigestLoading(true);
+    setStatus(null);
+    try {
+      const res = await fetch("/api/email-digest", { method: "POST" });
+      if (res.status === 401) { setAuthState("locked"); return; }
+      const data = await res.json() as { success?: boolean; gw?: number; recipients?: number; error?: string };
+      if (!res.ok) throw new Error(data.error ?? "Failed to send digest");
+      setStatus({ type: "success", msg: `GW${data.gw} digest sent to ${data.recipients} recipient${data.recipients === 1 ? "" : "s"}.` });
+    } catch (err: unknown) {
+      setStatus({ type: "error", msg: err instanceof Error ? err.message : "Failed to send digest." });
+    } finally {
+      setDigestLoading(false);
+    }
+  }
+
+  async function handleSavePrompt() {
+    if (!org) return;
+    setPromptSaving(true);
+    try {
+      const res = await fetch("/api/org/setup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: org.name,
+          miniLeagueId: org.miniLeagueId ?? undefined,
+          digestPrompt: digestPrompt.trim() || null,
+        }),
+      });
+      if (res.status === 401) { setAuthState("locked"); return; }
+      if (!res.ok) throw new Error("Failed to save prompt");
+      setSavedDigestPrompt(digestPrompt.trim());
+      setPromptSaved(true);
+      setTimeout(() => setPromptSaved(false), 2000);
+    } catch {
+      setStatus({ type: "error", msg: "Failed to save digest prompt." });
+    } finally {
+      setPromptSaving(false);
+    }
+  }
+
+  function handleMemberEmailSaved(managerId: number, email: string | null) {
+    setOrg((prev) =>
+      prev
+        ? {
+            ...prev,
+            members: prev.members.map((m) =>
+              m.managerId === managerId ? { ...m, email } : m
+            ),
+          }
+        : prev
+    );
+  }
+
   async function handleRemoveMember(managerId: number) {
     try {
       const res = await fetch(`/api/members/${managerId}`, { method: "DELETE" });
@@ -342,6 +471,77 @@ export default function AdminPage() {
         </CardBody>
       </Card>
 
+      {/* Email Digest */}
+      <Card>
+        <CardHeader>
+          <h2 className="font-semibold text-slate-800">GW Email Digest</h2>
+        </CardHeader>
+        <CardBody className="space-y-4">
+          <p className="text-sm text-slate-500">
+            Sends an AI-generated gameweek summary email to all members with a configured email address — covering the GW winner, loser, best captain, worst bench, and a per-manager narrative.
+          </p>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">AI Style &amp; Context</label>
+            <textarea
+              value={digestPrompt}
+              onChange={(e) => { setDigestPrompt(e.target.value); setPromptSaved(false); }}
+              rows={4}
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#37003c]/30 focus:border-[#37003c]/50 shadow-sm transition-colors hover:border-slate-300 resize-y"
+              placeholder={"Describe the tone and style for the digest email. For example:\n• \"Write like a deadpan corporate energy trading report\"\n• \"Funny and sarcastic, like a pub quiz host\"\n• \"Formal cricket commentary style\"\nLeave blank for a neutral friendly tone."}
+            />
+            <div className="flex items-center justify-between mt-1.5">
+              <p className="text-xs text-slate-400">Passed to the AI when generating the digest.</p>
+              <div className="flex items-center gap-2">
+                {promptSaved && (
+                  <span className="text-xs text-emerald-600">Saved ✓</span>
+                )}
+                {digestPrompt.trim() !== savedDigestPrompt && !promptSaved && (
+                  <button
+                    onClick={handleSavePrompt}
+                    disabled={promptSaving}
+                    className="text-xs font-medium text-[#37003c] hover:text-[#37003c]/70 transition-colors disabled:opacity-50"
+                  >
+                    {promptSaving ? "Saving…" : "Save prompt"}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {groqConfigured === false && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-xs text-amber-800">
+              <p className="font-semibold">Groq not configured — digest requires AI generation.</p>
+              <p className="mt-0.5 text-amber-700">Add <code className="font-mono">GROQ_API_KEY</code> to your environment. Get a free key at <span className="font-mono">console.groq.com/keys</span>.</p>
+            </div>
+          )}
+
+          {emailConfigured === false && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-xs text-amber-800 space-y-1">
+              <p className="font-semibold">SMTP not configured. Add these to your <code>.env</code>:</p>
+              <ul className="list-disc list-inside space-y-0.5 text-amber-700 font-mono">
+                <li>SMTP_HOST</li>
+                <li>SMTP_PORT (default: 587)</li>
+                <li>SMTP_USER</li>
+                <li>SMTP_PASS</li>
+                <li>SMTP_FROM</li>
+              </ul>
+            </div>
+          )}
+          {emailConfigured === true && (
+            <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+              SMTP configured. The digest is sent to all members with an email address set below.
+            </p>
+          )}
+          <Button
+            onClick={handleSendDigest}
+            disabled={digestLoading || emailConfigured === false || groqConfigured === false}
+          >
+            {digestLoading ? "Sending…" : "Send GW Digest Now"}
+          </Button>
+        </CardBody>
+      </Card>
+
       {/* Members */}
       <Card>
         <CardHeader>
@@ -372,6 +572,11 @@ export default function AdminPage() {
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-medium text-slate-800">{m.displayName}</div>
                   <div className="text-xs text-slate-400">{m.teamName} · ID {m.managerId}</div>
+                  <MemberEmailInput
+                    managerId={m.managerId}
+                    initialEmail={m.email}
+                    onSaved={(email) => handleMemberEmailSaved(m.managerId, email)}
+                  />
                   <div className="text-xs mt-0.5">
                     {m.registeredAt ? (
                       <span className="text-emerald-600">
@@ -379,7 +584,7 @@ export default function AdminPage() {
                         {m.lastLoginAt && (
                           <span className="text-slate-400">
                             {" · Last login "}
-                            {new Date(m.lastLoginAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                            {new Date(m.lastLoginAt).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                           </span>
                         )}
                       </span>

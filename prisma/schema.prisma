@@ -13,11 +13,14 @@ datasource db {
 }
 
 model Organisation {
-  id            String   @id @default(cuid())
-  name          String
-  miniLeagueId  Int?     @unique @map("mini_league_id")
-  createdAt     DateTime @default(now()) @map("created_at")
-  members       Member[]
+  id              String   @id @default(cuid())
+  name            String
+  miniLeagueId    Int?     @unique @map("mini_league_id")
+  digestPrompt    String?  @map("digest_prompt")
+  digestCacheGw   Int?     @map("digest_cache_gw")
+  digestCacheJson String?  @map("digest_cache_json")
+  createdAt       DateTime @default(now()) @map("created_at")
+  members         Member[]
 
   @@map("organisations")
 }
@@ -30,6 +33,7 @@ model Member {
   source              String       @default("manual") // "league" | "manual"
   isActive            Boolean      @default(true) @map("is_active")
   pointsDeductionPerGw Int         @default(0) @map("points_deduction_per_gw")
+  email               String?      @map("email")
   addedAt             DateTime     @default(now()) @map("added_at")
   organisationId      String       @map("organisation_id")
   organisation        Organisation @relation(fields: [organisationId], references: [id])

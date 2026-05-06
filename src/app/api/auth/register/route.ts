@@ -6,7 +6,7 @@ import { fetchAllLeagueStandings, fetchEntry } from "@/lib/fpl/client";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
-  let body: { managerId?: unknown; password?: unknown; confirmPassword?: unknown };
+  let body: { managerId?: unknown; email?: unknown; password?: unknown; confirmPassword?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
     : typeof body.managerId === "string" ? parseInt(body.managerId, 10)
     : NaN;
 
+  const email           = typeof body.email           === "string" ? body.email.trim() || null : null;
   const password        = typeof body.password        === "string" ? body.password        : "";
   const confirmPassword = typeof body.confirmPassword === "string" ? body.confirmPassword : "";
 
@@ -68,8 +69,9 @@ export async function POST(req: NextRequest) {
             source:         "league",
             isActive:       true,
             organisationId: org.id,
+            ...(email ? { email } : {}),
           },
-          update: { isActive: true },
+          update: { isActive: true, ...(email ? { email } : {}) },
         });
       } catch {
         // Non-fatal — still allow registration
@@ -85,6 +87,14 @@ export async function POST(req: NextRequest) {
   // ── Create user ───────────────────────────────────────────────────────────────
   const passwordHash = await hashPassword(password);
   await db.user.create({ data: { managerId, passwordHash } });
+
+  // ── Save email on the member record if provided ───────────────────────────────
+  if (email) {
+    await db.member.updateMany({
+      where: { managerId, isActive: true },
+      data:  { email },
+    });
+  }
 
   // ── Set session cookie ────────────────────────────────────────────────────────
   const token = buildUserToken(managerId);

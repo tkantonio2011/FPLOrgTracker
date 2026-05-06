@@ -12,7 +12,8 @@
 # WSL 1 users: run these from Windows PowerShell/cmd first, then --skip-build:
 #   npx prisma generate
 #   npm run build
-set -euo pipefail
+set -eu
+set -o pipefail 2>/dev/null || true
 
 SKIP_BUILD=false
 for arg in "$@"; do
@@ -22,7 +23,7 @@ done
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 TERRAFORM_DIR="$PROJECT_DIR/terraform"
-KEY_FILE="$TERRAFORM_DIR/deploy-key.pem"
+KEY_FILE="$TERRAFORM_DIR/recovery-key.pem"
 EC2_USER="ec2-user"
 APP_DIR="/home/ec2-user/app"
 
@@ -257,5 +258,5 @@ REMOTE
 echo ""
 echo "==> Deploy complete!"
 echo "    URL: http://$EC2_HOST"
-echo "    SSH: ssh -i terraform/deploy-key.pem ec2-user@$EC2_HOST"
+echo "    SSH: ssh -i terraform/recovery-key.pem ec2-user@$EC2_HOST"
 echo "    Logs: ssh ... 'pm2 logs fpl-tracker'"
