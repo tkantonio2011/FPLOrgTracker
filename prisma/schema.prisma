@@ -1,5 +1,9 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// Prisma schema — multi-league platform (002).
+//
+// Expand phase: the legacy Organisation/Member/User models are kept for now to
+// avoid breaking existing routes. They are removed in a separate "contract"
+// migration after the route migration in Phase 3 lands and the seed in
+// `prisma/migrations/002_multi_league/seed.ts` has been run.
 
 generator client {
   provider      = "prisma-client-js"
@@ -11,6 +15,11 @@ datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }
+
+// =============================================================================
+// LEGACY (single-tenant) — kept during the expand phase. Removed by the
+// contract migration once data is migrated.
+// =============================================================================
 
 model Organisation {
   id              String   @id @default(cuid())
@@ -26,18 +35,18 @@ model Organisation {
 }
 
 model Member {
-  id                  String       @id @default(cuid())
-  managerId           Int          @unique @map("manager_id")
-  displayName         String?      @map("display_name")
-  teamName            String?      @map("team_name")
-  source              String       @default("manual") // "league" | "manual"
-  isActive            Boolean      @default(true) @map("is_active")
-  pointsDeductionPerGw Int         @default(0) @map("points_deduction_per_gw")
-  email               String?      @map("email")
-  addedAt             DateTime     @default(now()) @map("added_at")
-  organisationId      String       @map("organisation_id")
-  organisation        Organisation @relation(fields: [organisationId], references: [id])
-  user                User?
+  id                   String       @id @default(cuid())
+  managerId            Int          @unique @map("manager_id")
+  displayName          String?      @map("display_name")
+  teamName             String?      @map("team_name")
+  source               String       @default("manual") // "league" | "manual"
+  isActive             Boolean      @default(true) @map("is_active")
+  pointsDeductionPerGw Int          @default(0) @map("points_deduction_per_gw")
+  email                String?      @map("email")
+  addedAt              DateTime     @default(now()) @map("added_at")
+  organisationId       String       @map("organisation_id")
+  organisation         Organisation @relation(fields: [organisationId], references: [id])
+  user                 User?
 
   @@map("members")
 }
@@ -51,4 +60,200 @@ model User {
   member       Member    @relation(fields: [managerId], references: [managerId])
 
   @@map("users")
+}
+
+// =============================================================================
+// MULTI-LEAGUE PLATFORM (new). See specs/002-multi-league-platform/data-model.md
+// =============================================================================
+
+model Platform {
+  id             String   @id @default(cuid())
+  name           String   @default("FPL Tracker")
+  defaultLogoUrl String?  @map("default_logo_url")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@map("platform")
+}
+
+model League {
+  id                       String    @id @default(cuid())
+  slug                     String    @unique
+  name                     String
+  logoUrl                  String?   @map("logo_url")
+  miniLeagueId             Int?      @unique @map("mini_league_id")
+  status                   String    @default("active") // "active" | "suspended"
+  digestPrompt             String?   @map("digest_prompt")
+  digestCacheGw            Int?      @map("digest_cache_gw")
+  digestCacheJson          String?   @map("digest_cache_json")
+  createdAt                DateTime  @default(now()) @map("created_at")
+  createdByUserAccountId   String?   @map("created_by_user_account_id")
+  suspendedAt              DateTime? @map("suspended_at")
+  suspendedByUserAccountId String?   @map("suspended_by_user_account_id")
+  suspensionReason         String?   @map("suspension_reason")
+
+  memberships LeagueMembership[]
+  invitations Invitation[]
+  slugHistory LeagueSlugHistory[]
+  auditEvents AuditEvent[]
+
+  createdByUserAccount   UserAccount? @relation("LeagueCreatedBy", fields: [createdByUserAccountId], references: [id])
+  suspendedByUserAccount UserAccount? @relation("LeagueSuspendedBy", fields: [suspendedByUserAccountId], references: [id])
+
+  @@index([status])
+  @@map("leagues")
+}
+
+model LeagueSlugHistory {
+  id         String   @id @default(cuid())
+  leagueId   String   @map("league_id")
+  slug       String   @unique
+  replacedAt DateTime @default(now()) @map("replaced_at")
+
+  league League @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+
+  @@index([leagueId])
+  @@map("league_slug_history")
+}
+
+model UserAccount {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  displayName String?   @map("display_name")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  lastLoginAt DateTime? @map("last_login_at")
+  disabledAt  DateTime? @map("disabled_at")
+
+  memberships        LeagueMembership[] @relation("Membership")
+  membershipsAddedBy LeagueMembership[] @relation("MembershipAddedBy")
+  sessions           Session[]
+  magicLinkTokens    MagicLinkToken[]
+  superAdmin         SuperAdmin?        @relation("SuperAdmin")
+  superAdminGrants   SuperAdmin[]       @relation("SuperAdminGrantedBy")
+  superAdminRevokes  SuperAdmin[]       @relation("SuperAdminRevokedBy")
+  invitationsSent    Invitation[]       @relation("InvitedBy")
+  auditEvents        AuditEvent[]       @relation("AuditActor")
+  leaguesCreated     League[]           @relation("LeagueCreatedBy")
+  leaguesSuspended   League[]           @relation("LeagueSuspendedBy")
+
+  @@map("user_accounts")
+}
+
+model LeagueMembership {
+  id                   String   @id @default(cuid())
+  leagueId             String   @map("league_id")
+  userAccountId        String?  @map("user_account_id")
+  managerId            Int      @map("manager_id")
+  displayName          String?  @map("display_name")
+  teamName             String?  @map("team_name")
+  role                 String   @default("member") // "member" | "admin"
+  source               String   @default("manual") // "league" | "manual" | "invitation"
+  pointsDeductionPerGw Int      @default(0) @map("points_deduction_per_gw")
+  isActive             Boolean  @default(true) @map("is_active")
+  addedAt              DateTime @default(now()) @map("added_at")
+  addedByUserAccountId String?  @map("added_by_user_account_id")
+
+  league             League       @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  userAccount        UserAccount? @relation("Membership", fields: [userAccountId], references: [id])
+  addedByUserAccount UserAccount? @relation("MembershipAddedBy", fields: [addedByUserAccountId], references: [id])
+
+  @@unique([leagueId, userAccountId])
+  @@unique([leagueId, managerId])
+  @@index([userAccountId])
+  @@index([leagueId, isActive])
+  @@map("league_memberships")
+}
+
+model SuperAdmin {
+  id                     String    @id @default(cuid())
+  userAccountId          String    @map("user_account_id")
+  grantedAt              DateTime  @default(now()) @map("granted_at")
+  grantedByUserAccountId String?   @map("granted_by_user_account_id")
+  revokedAt              DateTime? @map("revoked_at")
+  revokedByUserAccountId String?   @map("revoked_by_user_account_id")
+
+  userAccount          UserAccount  @relation("SuperAdmin", fields: [userAccountId], references: [id])
+  grantedByUserAccount UserAccount? @relation("SuperAdminGrantedBy", fields: [grantedByUserAccountId], references: [id])
+  revokedByUserAccount UserAccount? @relation("SuperAdminRevokedBy", fields: [revokedByUserAccountId], references: [id])
+
+  @@unique([userAccountId])
+  @@map("super_admins")
+}
+
+model MagicLinkToken {
+  id            String    @id @default(cuid())
+  tokenHash     String    @unique @map("token_hash")
+  purpose       String // "sign_in" | "invitation"
+  userAccountId String?   @map("user_account_id")
+  email         String
+  invitationId  String?   @unique @map("invitation_id")
+  expiresAt     DateTime  @map("expires_at")
+  usedAt        DateTime? @map("used_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  createdFromIp String?   @map("created_from_ip")
+
+  userAccount UserAccount? @relation(fields: [userAccountId], references: [id])
+  invitation  Invitation?  @relation(fields: [invitationId], references: [id])
+
+  @@index([email, purpose])
+  @@index([expiresAt])
+  @@map("magic_link_tokens")
+}
+
+model Session {
+  id            String    @id @default(cuid())
+  tokenHash     String    @unique @map("token_hash")
+  userAccountId String    @map("user_account_id")
+  expiresAt     DateTime  @map("expires_at")
+  lastSeenAt    DateTime  @default(now()) @map("last_seen_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  userAgent     String?   @map("user_agent")
+  ip            String?
+  revokedAt     DateTime? @map("revoked_at")
+
+  userAccount UserAccount @relation(fields: [userAccountId], references: [id], onDelete: Cascade)
+
+  @@index([userAccountId, revokedAt])
+  @@map("sessions")
+}
+
+model Invitation {
+  id                     String    @id @default(cuid())
+  leagueId               String    @map("league_id")
+  email                  String
+  role                   String    @default("member") // "member" | "admin"
+  managerId              Int?      @map("manager_id")
+  displayName            String?   @map("display_name")
+  invitedByUserAccountId String    @map("invited_by_user_account_id")
+  acceptedAt             DateTime? @map("accepted_at")
+  revokedAt              DateTime? @map("revoked_at")
+  createdAt              DateTime  @default(now()) @map("created_at")
+
+  league               League          @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  invitedByUserAccount UserAccount     @relation("InvitedBy", fields: [invitedByUserAccountId], references: [id])
+  token                MagicLinkToken?
+
+  @@index([leagueId, acceptedAt])
+  @@index([email])
+  @@map("invitations")
+}
+
+model AuditEvent {
+  id                 String   @id @default(cuid())
+  leagueId           String?  @map("league_id")
+  actorUserAccountId String?  @map("actor_user_account_id")
+  actorKind          String   @default("user") @map("actor_kind") // "user" | "migration" | "system"
+  action             String
+  targetKind         String   @map("target_kind") // "league" | "membership" | "user_account" | "invitation" | "super_admin" | "session"
+  targetId           String?  @map("target_id")
+  details            String? // JSON-encoded payload (SQLite has no native JSON)
+  createdAt          DateTime @default(now()) @map("created_at")
+  requestIp          String?  @map("request_ip")
+
+  league           League?      @relation(fields: [leagueId], references: [id], onDelete: SetNull)
+  actorUserAccount UserAccount? @relation("AuditActor", fields: [actorUserAccountId], references: [id])
+
+  @@index([leagueId, createdAt])
+  @@index([createdAt])
+  @@index([actorUserAccountId, createdAt])
+  @@map("audit_events")
 }

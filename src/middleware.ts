@@ -1,21 +1,49 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseUserTokenEdge, USER_COOKIE_NAME } from "@/lib/auth-edge";
 
-// Paths that do NOT require user authentication.
-// All /api/* routes handle their own auth — middleware only protects pages.
+/**
+ * Page-level auth gate. Edge runtime — no Prisma access — so we only check for
+ * the *presence* of a session cookie. Real validation happens in route handlers
+ * and Server Component layouts via `requireSession` / `requireLeagueMember`.
+ *
+ * The new (multi-league) cookie is `session`. The legacy (single-tenant) cookie
+ * is `user_session`. During the expand phase we accept either one so the legacy
+ * routes keep working until they are fully migrated.
+ */
+
+const NEW_SESSION_COOKIE = process.env.SESSION_COOKIE_NAME ?? "session";
+
 const PUBLIC_PREFIXES = [
+  // New (multi-league) auth surface
+  "/sign-in",
+  "/verify",
+  "/invitations",
+  // Legacy auth surface — kept while old code still runs
   "/login",
   "/register",
   "/admin",
+  // API routes self-authenticate
   "/api/",
+  // Framework / static
   "/_next",
   "/favicon.ico",
 ];
 
 function isPublic(pathname: string): boolean {
-  return PUBLIC_PREFIXES.some(
-    (p) => pathname === p || pathname.startsWith(p),
-  );
+  return PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p));
+}
+
+async function hasValidLegacyToken(req: NextRequest): Promise<boolean> {
+  const token = req.cookies.get(USER_COOKIE_NAME)?.value;
+  if (!token) return false;
+  const managerId = await parseUserTokenEdge(token);
+  return managerId !== null;
+}
+
+function hasNewSessionCookie(req: NextRequest): boolean {
+  // We only check presence here; the value is verified server-side via DB.
+  const v = req.cookies.get(NEW_SESSION_COOKIE)?.value;
+  return Boolean(v && v.length > 0);
 }
 
 export async function middleware(req: NextRequest) {
@@ -23,17 +51,13 @@ export async function middleware(req: NextRequest) {
 
   if (isPublic(pathname)) return NextResponse.next();
 
-  const token     = req.cookies.get(USER_COOKIE_NAME)?.value;
-  const managerId = token ? await parseUserTokenEdge(token) : null;
+  if (hasNewSessionCookie(req)) return NextResponse.next();
+  if (await hasValidLegacyToken(req)) return NextResponse.next();
 
-  if (!managerId) {
-    const url = req.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("next", pathname);
-    return NextResponse.redirect(url);
-  }
-
-  return NextResponse.next();
+  const url = req.nextUrl.clone();
+  url.pathname = "/sign-in";
+  url.searchParams.set("redirect", pathname);
+  return NextResponse.redirect(url);
 }
 
 export const config = {
