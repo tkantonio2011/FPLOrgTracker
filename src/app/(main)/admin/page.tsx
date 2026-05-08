@@ -488,7 +488,7 @@ export default function AdminPage() {
               onChange={(e) => { setDigestPrompt(e.target.value); setPromptSaved(false); }}
               rows={4}
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#37003c]/30 focus:border-[#37003c]/50 shadow-sm transition-colors hover:border-slate-300 resize-y"
-              placeholder={"Describe the tone and style for the digest email. For example:\n• \"Write like a deadpan corporate energy trading report\"\n• \"Funny and sarcastic, like a pub quiz host\"\n• \"Formal cricket commentary style\"\nLeave blank for a neutral friendly tone."}
+              placeholder={"Describe the tone and style for the digest email. For example:\n• \"Write like a deadpan corporate report\"\n• \"Funny and sarcastic, like a pub quiz host\"\n• \"Formal cricket commentary style\"\nLeave blank for a neutral friendly tone."}
             />
             <div className="flex items-center justify-between mt-1.5">
               <p className="text-xs text-slate-400">Passed to the AI when generating the digest.</p>

@@ -110,13 +110,13 @@ function gwVerdict(
 
   // ── First place ──────────────────────────────────────────────────────────────
   if (isFirst && vsGlobal >= 20)
-    return `${firstName} cooked this gameweek — ${pts} pts, ${vsGlobal} above the global average, top of the org. EnergyOne's board would like a word with "${team}". About FPL. Not Q2.`;
+    return `${firstName} cooked this gameweek — ${pts} pts, ${vsGlobal} above the global average, top of the league. The board would like a word with "${team}". About FPL.`;
   if (isFirst && vsGlobal >= 10)
     return `GW winner. ${firstName} put up ${pts} pts and beat the global FPL average by ${vsGlobal}. Strong long position on premium assets. Risk-adjusted returns: exceptional. Annual leave: pending.`;
   if (isFirst && climbedBy > 0)
     return `${firstName} climbed ${climbedBy} place${climbedBy > 1 ? "s" : ""} to lead the org with ${pts} pts. Not flashy — just consistent. "${team}" is a baseload power plant. Unglamorous. Effective.`;
   if (isFirst)
-    return `${firstName} tops the org this week on ${pts} pts. Steady, reliable, unspectacular — the kind of performance that keeps the lights on at EnergyOne without anyone noticing.`;
+    return `${firstName} tops the league this week on ${pts} pts. Steady, reliable, unspectacular — the kind of performance that keeps the lights on without anyone noticing.`;
 
   // ── Last place ───────────────────────────────────────────────────────────────
   if (isLast && vsGlobal <= -20)
@@ -158,7 +158,7 @@ function gwVerdict(
   if (vsOrg > 0 && vsOrg < 5 && climbedBy > 0)
     return `${firstName} nudged ${vsOrg} pts above the org average and moved up ${climbedBy} place${climbedBy > 1 ? "s" : ""}. Like a 1% efficiency gain on a gas turbine — technically positive, not worth the press release, but logged.`;
   if (vsOrg > 0 && vsOrg < 5)
-    return `${firstName}'s "${team}" scraped ${vsOrg} pts above the org average on ${pts}. Marginal upside. The spread is thin but it's still green. EnergyOne's risk desk files this under "acceptable".`;
+    return `${firstName}'s "${team}" scraped ${vsOrg} pts above the org average on ${pts}. Marginal upside. The spread is thin but it's still green. The risk desk files this under "acceptable".`;
 
   // ── Slightly below ───────────────────────────────────────────────────────────
   if (vsOrg >= -5 && droppedBy > 2)
@@ -177,7 +177,7 @@ function gwVerdict(
   // ── Significant drop ─────────────────────────────────────────────────────────
   if (droppedBy > 2)
     return `${firstName} loses ${droppedBy} places this week, "${team}" delivering just ${pts} pts — ${Math.abs(vsOrg)} below the org average. A sharp drawdown. Stop-loss not triggered. It should have been.`;
-  return `${firstName}'s "${team}" posted ${pts} pts — ${Math.abs(vsOrg)} below the org average. The quarterly forecast will need adjusting. EnergyOne's FPL desk formally requests a root-cause analysis by Monday.`;
+  return `${firstName}'s "${team}" posted ${pts} pts — ${Math.abs(vsOrg)} below the org average. The quarterly forecast will need adjusting. The FPL desk formally requests a root-cause analysis by Monday.`;
 }
 
 // ── Data types ────────────────────────────────────────────────────────────────
@@ -629,7 +629,7 @@ export function LandingPage() {
             <span className="text-base">📊</span>
             <div className="flex-1 min-w-0">
               <h2 className="text-sm font-semibold text-slate-700">GW{standingsData.gameweekId} Performance Report</h2>
-              <p className="text-xs text-slate-400">EnergyOne Trading Desk · Internal Use Only</p>
+              <p className="text-xs text-slate-400">League Performance Report · Internal Use Only</p>
             </div>
             {aiLoading && (
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-violet-400 animate-spin">

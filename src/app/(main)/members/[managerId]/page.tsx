@@ -186,7 +186,7 @@ function SeasonNarrativeCard({
         {narrative && (
           <div className="mt-3 pt-2.5 border-t border-white/8 flex items-center justify-between">
             <span className="text-[10px] text-purple-400/40">
-              Auto-generated · EnergyOne FPL Programme
+              Auto-generated · League FPL Programme
             </span>
             <span className="text-[10px] text-purple-400/40 flex items-center gap-1">
               <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" className="opacity-60">
