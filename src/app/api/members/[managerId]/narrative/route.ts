@@ -139,7 +139,7 @@ export async function GET(
       ? "They are in the top half but not leading — write with cautious optimism, wry self-awareness."
       : "They are in the lower half — write with the resigned tone of a mid-table side that talks itself into believing a late run is possible.";
 
-    const prompt = `You are writing the "Season So Far" entry in the official EnergyOne FPL Programme — an internal FPL publication for colleagues at EnergyOne, an energy trading software company. This is the season profile for one of the ${orgSize} managers in their private mini-league.
+    const prompt = `You are writing the "Season So Far" entry in the official League FPL Programme — an internal publication for a private fantasy football mini-league. This is the season profile for one of the ${orgSize} managers in the league.
 
 Stats:
 ${contextBlock}
@@ -149,7 +149,7 @@ Tone guidance: ${positionHint}
 Write a single paragraph (3–5 sentences) in the style of a football match programme player biography — authoritative, slightly dramatic, but quietly savage. Rules:
 - Write in the THIRD PERSON — never "you" or "your"
 - Use their first name naturally; reference their team name at least once
-- Weave in energy trading or software humour (gas spreads, hedging, P&L, Jira, sprints, pipelines, incident reports, etc.)
+- Generic office / financial-markets humour is welcome (spreads, hedging, P&L, Jira, sprints, pipelines, incident reports) — keep it broad rather than tied to any one industry
 - Reference at least two specific numbers from the stats above (points wasted on bench, hit cost, GW scores, pts behind leader, etc.)
 - One sentence should be purely factual setup; the next should land the twist or the joke
 - Do not end with generic motivation or future hope — end on an observation about the present situation

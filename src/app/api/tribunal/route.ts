@@ -112,9 +112,9 @@ export async function POST(req: NextRequest) {
       .join("\n");
 
     // ── Groq prompt ───────────────────────────────────────────────────────────
-    const prompt = `You are writing a fictional post-GW FPL press conference for a private fantasy football mini-league at EnergyOne, an energy trading software company.
+    const prompt = `You are writing a fictional post-GW FPL press conference for a private fantasy football mini-league.
 
-${firstName} has just finished BOTTOM of the org this gameweek. They must face three pointed questions from Malcolm Sharp, senior correspondent at The FPL Gazette.
+${firstName} has just finished BOTTOM of the league this gameweek. They must face three pointed questions from Malcolm Sharp, senior correspondent at The FPL Gazette.
 
 Factual context:
 ${contextLines}
@@ -135,12 +135,12 @@ Rules for questions:
 
 Rules for answers:
 - ${firstName} is defensive, rationalising, slightly delusional — classic post-match manager speak
-- Sprinkle in energy trading / software metaphors (risk model, hedging, pipeline, Jira, deploys, gas spreads)
+- Generic office / financial-markets metaphors welcome (risk model, hedging, pipeline, Jira, sprints, deployments, P&L) but keep them broadly relatable rather than tied to any one industry
 - Answers are 2–3 sentences — confident on the surface, crumbling underneath
 - Occasionally they contradict themselves between answers
 
 General rules:
-- Darkly funny, not cruel — this is affectionate workplace banter
+- Darkly funny, not cruel — this is affectionate friendly-league banter
 - Output ONLY valid JSON. No markdown fences, no extra text, no trailing commas.`;
 
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });

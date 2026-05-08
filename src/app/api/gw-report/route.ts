@@ -47,19 +47,19 @@ export async function POST(req: NextRequest) {
     })
     .join("\n");
 
-  const prompt = `You are writing the internal GW${gameweekId} FPL Performance Report for an organisation called EnergyOne — an energy trading software company. All the managers listed below are colleagues who work there.
+  const prompt = `You are writing the internal GW${gameweekId} FPL Performance Report for a private fantasy football mini-league. All the managers listed below are members of this league.
 
 Context:
-- Org average this GW: ${orgAverageGwPoints} pts
+- League average this GW: ${orgAverageGwPoints} pts
 - Global FPL average this GW: ${globalAverageGwPoints} pts
 
 Managers (ranked by GW points, best first):
 ${managerLines}
 
 Write a short, punchy, funny one-to-two sentence verdict for EACH manager. Rules:
-- Write in the THIRD PERSON — these are updates about each person to their colleagues, not messages to the person themselves. Never use "you" or "your"
+- Write in the THIRD PERSON — these are updates about each person to other league members, not messages to the person themselves. Never use "you" or "your"
 - Use their first name and reference their team name naturally
-- Use energy trading or software development humour (e.g. gas spreads, hedging, P&L, Jira tickets, sprints, deployments, standups, incident reports, pipeline capacity, etc.)
+- Use a mix of office and financial-markets humour (e.g. spreads, hedging, P&L, Jira tickets, sprints, deployments, standups, incident reports, pipeline capacity, etc.) — generic enough to land regardless of the reader's industry
 - Every verdict must be noticeably different — vary the tone, the analogy, and the structure. Do NOT reuse the same metaphor or sentence pattern for different managers
 - Verdicts for high scorers should be triumphant or smugly congratulatory; for low scorers, gently brutal; for mid-table, wryly observational
 - If someone used a chip, reference it

@@ -87,14 +87,14 @@ export async function POST(req: NextRequest) {
     return `${i + 1}. ${m.displayName} ("${m.teamName}") | sign: ${m.sign} ${m.signEmoji} | org rank: ${m.orgRank}/${managers.length} | season pts: ${m.totalPoints}${active} | ${scores} | ${chips}`;
   }).join("\n");
 
-  const prompt = `You are Madame FPL — a theatrical, darkly comic oracle writing pre-deadline horoscopes for fantasy football managers at EnergyOne, an energy trading company. Instead of zodiac signs, each manager is assigned an energy trading archetype (e.g. "The Gas Peaker", "The Force Majeure"). Your readings blend mystical prophecy language with energy market jargon and cold FPL statistics. Think a trading floor analyst who also reads tarot cards.
+  const prompt = `You are Madame FPL — a theatrical, darkly comic oracle writing pre-deadline horoscopes for fantasy football managers in a private mini-league. Instead of zodiac signs, each manager is assigned a quirky archetype with energy-flavoured names (e.g. "The Gas Peaker", "The Force Majeure"). Your readings blend mystical prophecy language with financial-markets jargon and cold FPL statistics. Think a trading-floor analyst who also reads tarot cards.
 
 GW${nextGw} Pre-Deadline Oracle (based on data through GW${gameweekId}):
 ${managerLines}
 
 For each manager write EXACTLY ONE prediction of 2-3 sentences. Rules:
-- Open by invoking their energy archetype name (e.g. "As a Gas Peaker, you burn brightest under pressure..." or "The Force Majeure in you sees no personal responsibility in those recent scores of...")
-- Blend energy trading jargon with FPL mysticism: recent scores are "settlement figures", a chip is "a strategic reserve", being last means "trading at a discount to intrinsic value"
+- Open by invoking their archetype name (e.g. "As a Gas Peaker, you burn brightest under pressure..." or "The Force Majeure in you sees no personal responsibility in those recent scores of...")
+- Blend financial-markets jargon with FPL mysticism: recent scores are "settlement figures", a chip is "a strategic reserve", being last means "trading at a discount to intrinsic value"
 - Calibrate tone: top manager = smug market dominance; bottom manager = dark omens, negative spreads, "the grid is against you"; mid-table = sideways market, "no clear signal"
 - If chips remain, reference them as untapped capacity or a secret weapon in reserve
 - Include at least ONE actual number from their stats

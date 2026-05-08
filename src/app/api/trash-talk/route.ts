@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     .filter(Boolean)
     .join("\n");
 
-  const prompt = `You are writing the pre-fight weigh-in trash talk for a fantasy football head-to-head rivalry at EnergyOne, an energy trading company. Think Muhammad Ali vs Joe Frazier — but for FPL.
+  const prompt = `You are writing the pre-fight weigh-in trash talk for a fantasy football head-to-head rivalry inside a private mini-league. Think Muhammad Ali vs Joe Frazier — but for FPL.
 
 H2H Context:
 ${context}
@@ -77,7 +77,7 @@ Generate two one-liner boxing weigh-in quotes — one from each manager's "corne
 - The leader should be smug and specific about their edge
 - The trailer should be defiant, dismissive, or in denial
 - If they're level, both should be equally cocky
-- Weave in energy trading / software metaphors occasionally (but not mandatory)
+- Office / financial-markets metaphors are fine but not required — keep them generic (spreads, P&L, sprints) rather than industry-specific
 - Reference at least one specific stat (wins, streak, pts gap, biggest win) in each quote
 
 Return ONLY valid JSON with exactly this structure — no markdown, no extra text:
