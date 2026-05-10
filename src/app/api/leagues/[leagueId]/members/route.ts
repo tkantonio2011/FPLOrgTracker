@@ -183,7 +183,7 @@ export async function POST(req: NextRequest, ctx: { params: { leagueId: string }
         invitationId = invitation.id;
         const token = await issueInvitationToken(invitation.id, body.email, ip);
         const origin = req.nextUrl.origin;
-        const link = `${origin}/invitations/${invitation.id}?token=${token.plaintext}`;
+        const link = `${origin}/invitations/${token.plaintext}`;
         await sendInvitation(body.email, league.name, link);
         await logAuditEvent({
           leagueId: league.id,

@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useLeague } from "@/components/league/LeagueProvider";
+import { InviteMemberDialog } from "@/components/league/InviteMemberDialog";
 
 interface Member {
   id: string;
@@ -32,6 +33,7 @@ export default function LeagueAdminMembersPage() {
   const qc = useQueryClient();
   const [includeInactive, setIncludeInactive] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const { data, isLoading, isError } = useQuery({
@@ -69,6 +71,9 @@ export default function LeagueAdminMembersPage() {
             />
             Show inactive
           </label>
+          <Button variant="secondary" onClick={() => setInviteOpen(true)}>
+            ✉ Invite by email
+          </Button>
           <Button onClick={() => setAddOpen(true)}>+ Add member</Button>
         </div>
       </header>
@@ -79,6 +84,17 @@ export default function LeagueAdminMembersPage() {
           onClose={() => setAddOpen(false)}
           onAdded={() => {
             setAddOpen(false);
+            qc.invalidateQueries({ queryKey: ["admin-members", league.id] });
+          }}
+        />
+      )}
+
+      {inviteOpen && (
+        <InviteMemberDialog
+          leagueId={league.id}
+          onClose={() => setInviteOpen(false)}
+          onIssued={() => {
+            setInviteOpen(false);
             qc.invalidateQueries({ queryKey: ["admin-members", league.id] });
           }}
         />

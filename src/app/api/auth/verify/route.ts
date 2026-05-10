@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { createHash } from "crypto";
 import { db } from "@/lib/db";
 import { consumeToken } from "@/lib/auth/magic-link";
 import { createSession, setSessionCookie } from "@/lib/auth/session";
@@ -25,18 +26,28 @@ export async function GET(req: NextRequest) {
   const redirectParam = req.nextUrl.searchParams.get("redirect");
   if (!tokenParam) return failRedirect(origin, "invalid");
 
-  const result = await consumeToken(tokenParam);
-  if (!result.ok) return failRedirect(origin, result.reason);
+  // Peek without consuming so we can dispatch by purpose. Invitation tokens
+  // must remain unconsumed so the acceptance page can submit any missing
+  // fields (managerId/displayName) before the accept endpoint consumes them.
+  const tokenHash = createHash("sha256").update(tokenParam).digest("hex");
+  const peek = await db.magicLinkToken.findUnique({ where: { tokenHash } });
+  if (!peek) return failRedirect(origin, "invalid");
+  if (peek.usedAt) return failRedirect(origin, "used");
+  if (peek.expiresAt.getTime() <= Date.now()) return failRedirect(origin, "expired");
 
-  if (result.purpose === "invitation") {
-    // Invitation tokens are accepted by a separate flow that captures any
-    // missing fields (managerId, displayName) before creating the membership.
-    // We redirect to the acceptance page; the page reads the invitation by id.
-    const url = new URL(`/invitations/${result.invitationId}`, origin);
-    return NextResponse.redirect(url, { status: 302 });
+  if (peek.purpose === "invitation") {
+    // Pass the plaintext through so the acceptance page can resolve details
+    // and the accept endpoint can consume it. The token stays single-use.
+    return NextResponse.redirect(new URL(`/invitations/${tokenParam}`, origin), {
+      status: 302,
+    });
   }
 
-  // Sign-in token consumed — create session.
+  // Sign-in path — consume the token and create a session.
+  const result = await consumeToken(tokenParam);
+  if (!result.ok) return failRedirect(origin, result.reason);
+  if (result.purpose !== "sign_in") return failRedirect(origin, "invalid");
+
   await db.userAccount.update({
     where: { id: result.userAccountId },
     data: { lastLoginAt: new Date() },
