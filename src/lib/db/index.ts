@@ -23,8 +23,11 @@ if (process.env.NODE_ENV !== "production") {
 // import in dev (Next.js hot-reload).
 if (!globalForPrisma.prismaWalConfigured) {
   globalForPrisma.prismaWalConfigured = true;
+  // PRAGMA journal_mode returns the active mode as a result row, so it must
+  // be issued via $queryRawUnsafe — $executeRawUnsafe rejects with "Execute
+  // returned results, which is not allowed in SQLite".
   void db
-    .$executeRawUnsafe("PRAGMA journal_mode = WAL;")
+    .$queryRawUnsafe("PRAGMA journal_mode = WAL;")
     .catch((err) => {
       // Non-SQLite providers will return an error; ignore. Real SQLite
       // failures are surfaced as warnings — the app still works without WAL.

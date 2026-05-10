@@ -14,13 +14,13 @@ import { parseUserTokenEdge, USER_COOKIE_NAME } from "@/lib/auth-edge";
 const NEW_SESSION_COOKIE = process.env.SESSION_COOKIE_NAME ?? "session";
 
 const PUBLIC_PREFIXES = [
-  // New (multi-league) auth surface
+  // Multi-league auth surface
   "/sign-in",
   "/verify",
   "/invitations",
-  // Legacy auth surface — kept while old code still runs
-  "/login",
-  "/register",
+  // Legacy admin PIN page is still public until the new league-admin shell
+  // (T052–T056) replaces it. Once `(main)/admin/page.tsx` is deleted this
+  // entry can go too.
   "/admin",
   // API routes self-authenticate
   "/api/",
