@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useLeague } from "@/components/league/LeagueProvider";
@@ -203,7 +203,98 @@ export default function LeagueAdminSettingsPage() {
           </form>
         </CardBody>
       </Card>
+
+      <SyncCard leagueId={league.id} miniLeagueId={form.miniLeagueId} dirty={dirty} />
     </div>
+  );
+}
+
+// ── Sync card ──────────────────────────────────────────────────────────────
+
+interface SyncResult {
+  added: number;
+  refreshed: number;
+  total: number;
+}
+
+function SyncCard({
+  leagueId,
+  miniLeagueId,
+  dirty,
+}: {
+  leagueId: string;
+  miniLeagueId: number | null;
+  dirty: boolean;
+}) {
+  const qc = useQueryClient();
+  const [result, setResult] = useState<SyncResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: async (): Promise<SyncResult> => {
+      const res = await fetch(`/api/leagues/${leagueId}/sync`, { method: "POST" });
+      const body = (await res.json()) as { success: boolean; data?: SyncResult; error?: string };
+      if (!res.ok || !body.success || !body.data) {
+        throw new Error(body.error ?? "Sync failed");
+      }
+      return body.data;
+    },
+    onSuccess: (data) => {
+      setResult(data);
+      setError(null);
+      qc.invalidateQueries({ queryKey: ["admin-members", leagueId] });
+      qc.invalidateQueries({ queryKey: ["league-settings", leagueId] });
+    },
+    onError: (err: Error) => {
+      setResult(null);
+      setError(err.message);
+    },
+  });
+
+  const canSync = miniLeagueId !== null && !dirty;
+
+  return (
+    <Card>
+      <CardHeader>
+        <h2 className="text-sm font-semibold text-slate-900">FPL sync</h2>
+      </CardHeader>
+      <CardBody className="space-y-3">
+        <p className="text-xs text-slate-500">
+          Re-imports members from the configured FPL mini-league. Existing members keep their
+          customisations; new managers in the mini-league get added as league-sourced members.
+          Manually-added and invited members are never touched by sync.
+        </p>
+        {miniLeagueId === null && (
+          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2 rounded">
+            Set a mini-league ID above and save before running sync.
+          </p>
+        )}
+        {dirty && miniLeagueId !== null && (
+          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2 rounded">
+            Save your changes before running sync.
+          </p>
+        )}
+        <div className="flex items-center justify-between pt-1">
+          <div className="text-xs">
+            {error && <span className="text-red-600">{error}</span>}
+            {result && (
+              <span className="text-emerald-600">
+                Sync complete — {result.added} added, {result.refreshed} refreshed,{" "}
+                {result.total} total active.
+              </span>
+            )}
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={!canSync || mutation.isPending}
+            onClick={() => mutation.mutate()}
+          >
+            {mutation.isPending ? "Syncing…" : "Sync from FPL"}
+          </Button>
+        </div>
+      </CardBody>
+    </Card>
   );
 }
 
