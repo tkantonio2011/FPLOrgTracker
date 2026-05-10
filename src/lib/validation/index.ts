@@ -3,7 +3,7 @@
  * Use `parseBody(req, schema)` in every route handler with a JSON body.
  */
 
-import { z, ZodError, type ZodSchema } from "zod";
+import { z, ZodError, type ZodSchema, type ZodTypeAny } from "zod";
 import type { NextRequest } from "next/server";
 
 export { z, ZodError };
@@ -18,8 +18,14 @@ export class ValidationError extends Error {
   }
 }
 
-/** Parse a JSON request body against a Zod schema. */
-export async function parseBody<T>(req: NextRequest, schema: ZodSchema<T>): Promise<T> {
+/**
+ * Parse a JSON request body against a Zod schema.
+ *
+ * Returns the schema's *output* type (`z.infer<S>`), not the input — this
+ * matters for schemas that use `.default()` or `.transform()`, where the
+ * input type and output type diverge.
+ */
+export async function parseBody<S extends ZodTypeAny>(req: NextRequest, schema: S): Promise<z.infer<S>> {
   let raw: unknown;
   try {
     raw = await req.json();
@@ -38,7 +44,7 @@ export async function parseBody<T>(req: NextRequest, schema: ZodSchema<T>): Prom
 }
 
 /** Parse search-params against a Zod schema (object form). */
-export function parseQuery<T>(req: NextRequest, schema: ZodSchema<T>): T {
+export function parseQuery<S extends ZodTypeAny>(req: NextRequest, schema: S): z.infer<S> {
   const obj = Object.fromEntries(req.nextUrl.searchParams);
   return schema.parse(obj);
 }
