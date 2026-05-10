@@ -160,69 +160,84 @@ const ArmBandIcon = () => (
 );
 
 interface NavItem {
-  href: string;
+  /** Path relative to the league shell (e.g. "/standings"). Resolved at render. */
+  path: string;
   label: string;
   icon: React.ReactNode;
   exact?: boolean;
+  /** Platform-level link — never gets the league prefix. */
+  platform?: boolean;
 }
 
 interface NavGroup {
-  label?: string; // undefined = no section header
+  label?: string;
   items: NavItem[];
 }
 
 const navGroups: NavGroup[] = [
   {
     items: [
-      { href: "/", label: "Home", icon: <HomeIcon />, exact: true },
+      { path: "/standings", label: "Home", icon: <HomeIcon /> },
     ],
   },
   {
     label: "Gameweek",
     items: [
-      { href: "/standings",  label: "Standings",   icon: <TrophyIcon /> },
-      { href: "/live",       label: "Live Points", icon: <ZapIcon /> },
-      { href: "/transfers",  label: "Transfers",   icon: <ArrowsIcon /> },
+      { path: "/standings", label: "Standings", icon: <TrophyIcon /> },
+      { path: "/live", label: "Live Points", icon: <ZapIcon /> },
+      { path: "/transfers", label: "Transfers", icon: <ArrowsIcon /> },
     ],
   },
   {
     label: "Season",
     items: [
-      { href: "/form",           label: "Form Table",   icon: <FlameIcon /> },
-      { href: "/season-stats",   label: "Season Stats", icon: <BarChartIcon /> },
-      { href: "/bench",          label: "Bench Waste",  icon: <BenchIcon /> },
-      { href: "/captain-history",label: "Captains",     icon: <StarIcon /> },
-      { href: "/h2h",            label: "H2H Battle",   icon: <SwordsIcon /> },
-      { href: "/regret",         label: "Transfer Regret", icon: <ReceiptIcon /> },
-      { href: "/agony",          label: "Agony Index",     icon: <FrownIcon /> },
-      { href: "/luck",           label: "Luck Ranking",    icon: <DiceIcon /> },
-      { href: "/captain-whatif", label: "Captain What-If", icon: <ArmBandIcon /> },
-      { href: "/wall-of-shame",  label: "Wall of Shame",  icon: <ShameIcon /> },
+      { path: "/form", label: "Form Table", icon: <FlameIcon /> },
+      { path: "/season-stats", label: "Season Stats", icon: <BarChartIcon /> },
+      { path: "/bench", label: "Bench Waste", icon: <BenchIcon /> },
+      { path: "/captain-history", label: "Captains", icon: <StarIcon /> },
+      { path: "/h2h", label: "H2H Battle", icon: <SwordsIcon /> },
+      { path: "/regret", label: "Transfer Regret", icon: <ReceiptIcon /> },
+      { path: "/agony", label: "Agony Index", icon: <FrownIcon /> },
+      { path: "/luck", label: "Luck Ranking", icon: <DiceIcon /> },
+      { path: "/captain-whatif", label: "Captain What-If", icon: <ArmBandIcon /> },
+      { path: "/wall-of-shame", label: "Wall of Shame", icon: <ShameIcon />, platform: true },
     ],
   },
   {
     label: "Scout",
     items: [
-      { href: "/fixtures",      label: "Fixtures",      icon: <CalendarIcon /> },
-      { href: "/ownership",     label: "Ownership",     icon: <UsersIcon /> },
-      { href: "/differentials", label: "Differentials", icon: <AlertIcon /> },
-      { href: "/player-status", label: "Injuries",      icon: <HeartPulseIcon /> },
+      { path: "/fixtures", label: "Fixtures", icon: <CalendarIcon />, platform: true },
+      { path: "/ownership", label: "Ownership", icon: <UsersIcon /> },
+      { path: "/differentials", label: "Differentials", icon: <AlertIcon /> },
+      { path: "/player-status", label: "Injuries", icon: <HeartPulseIcon /> },
     ],
   },
   {
     items: [
-      { href: "/admin", label: "Admin", icon: <SettingsIcon /> },
+      { path: "/admin", label: "Admin", icon: <SettingsIcon />, platform: true },
     ],
   },
 ];
 
+function extractLeagueSlug(pathname: string | null): string | null {
+  if (!pathname) return null;
+  const match = pathname.match(/^\/l\/([^/]+)/);
+  return match?.[1] ?? null;
+}
+
+function resolveHref(item: NavItem, leagueSlug: string | null): string {
+  if (item.platform || leagueSlug === null) return item.path;
+  return `/l/${leagueSlug}${item.path}`;
+}
+
 export function Sidebar({ version, onClose }: { version: string; onClose?: () => void }) {
   const pathname = usePathname();
-  const router   = useRouter();
+  const router = useRouter();
+  const leagueSlug = extractLeagueSlug(pathname);
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
+    router.push("/sign-in");
     router.refresh();
   }
 
@@ -233,14 +248,17 @@ export function Sidebar({ version, onClose }: { version: string; onClose?: () =>
   useEffect(() => {
     for (const group of navGroups) {
       if (!group.label) continue;
-      const hasActive = group.items.some((item) =>
-        item.exact ? pathname === item.href : pathname?.startsWith(item.href)
-      );
-      if (hasActive) { setOpenGroup(group.label); return; }
+      const hasActive = group.items.some((item) => {
+        const href = resolveHref(item, leagueSlug);
+        return item.exact ? pathname === href : pathname?.startsWith(href);
+      });
+      if (hasActive) {
+        setOpenGroup(group.label);
+        return;
+      }
     }
-    // Active page is Home or Admin — collapse everything
     setOpenGroup(null);
-  }, [pathname]);
+  }, [pathname, leagueSlug]);
 
   const toggleGroup = (label: string) =>
     setOpenGroup((prev) => (prev === label ? null : label));
@@ -254,7 +272,7 @@ export function Sidebar({ version, onClose }: { version: string; onClose?: () =>
             <span className="text-[#37003c] font-black text-sm leading-none">FPL</span>
           </div>
           <div className="flex-1">
-            <div className="text-white font-bold text-sm leading-tight">Organisation</div>
+            <div className="text-white font-bold text-sm leading-tight">Fantasy</div>
             <div className="text-white/50 text-xs">Tracker</div>
           </div>
           {/* Close button — mobile only */}
@@ -276,10 +294,10 @@ export function Sidebar({ version, onClose }: { version: string; onClose?: () =>
       <nav className="flex-1 px-3 py-3 overflow-y-auto space-y-4">
         {navGroups.map((group, gi) => {
           const isCollapsed = group.label ? openGroup !== group.label : false;
-          // Safety net: always show items for the active page even mid-transition
-          const hasActive = group.items.some((item) =>
-            item.exact ? pathname === item.href : pathname?.startsWith(item.href)
-          );
+          const hasActive = group.items.some((item) => {
+            const href = resolveHref(item, leagueSlug);
+            return item.exact ? pathname === href : pathname?.startsWith(href);
+          });
 
           return (
             <div key={gi} className="space-y-0.5">
@@ -306,13 +324,12 @@ export function Sidebar({ version, onClose }: { version: string; onClose?: () =>
               )}
 
               {(!isCollapsed || hasActive) && group.items.map((item) => {
-                const isActive = item.exact
-                  ? pathname === item.href
-                  : pathname?.startsWith(item.href);
+                const href = resolveHref(item, leagueSlug);
+                const isActive = item.exact ? pathname === href : pathname?.startsWith(href);
                 return (
                   <Link
-                    key={item.href}
-                    href={item.href}
+                    key={item.path}
+                    href={href}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer ${
                       isActive
                         ? "bg-white/15 text-[#00ff87] shadow-[inset_0_1px_0_rgb(255_255_255/0.1)]"

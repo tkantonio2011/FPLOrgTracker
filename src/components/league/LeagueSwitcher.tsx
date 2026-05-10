@@ -4,15 +4,16 @@ import Link from "next/link";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
+interface MeMembership {
+  leagueId: string;
+  leagueSlug: string;
+  leagueName: string;
+  role: "member" | "admin";
+  isActive: boolean;
+}
+
 interface MeResponse {
-  userAccount?: { id: string; email: string };
-  memberships?: Array<{
-    leagueId: string;
-    leagueSlug: string;
-    leagueName: string;
-    role: "member" | "admin";
-    isActive: boolean;
-  }>;
+  memberships?: MeMembership[];
 }
 
 interface Props {
@@ -23,7 +24,7 @@ interface Props {
 export function LeagueSwitcher({ currentLeagueSlug, currentLeagueName }: Props) {
   const [open, setOpen] = useState(false);
 
-  const { data } = useQuery<MeResponse>({
+  const { data } = useQuery<MeResponse | null>({
     queryKey: ["me-leagues"],
     queryFn: () => fetch("/api/auth/me").then((r) => (r.ok ? r.json() : null)),
     staleTime: 60_000,
@@ -32,11 +33,11 @@ export function LeagueSwitcher({ currentLeagueSlug, currentLeagueName }: Props) 
   const memberships = (data?.memberships ?? []).filter((m) => m.isActive);
   const others = memberships.filter((m) => m.leagueSlug !== currentLeagueSlug);
 
-  if (memberships.length <= 1) {
+  if (memberships.length <= 1 || others.length === 0) {
     return (
-      <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-white/10 text-sm text-white">
+      <h1 className="font-semibold text-slate-700 text-sm tracking-tight truncate">
         {currentLeagueName}
-      </span>
+      </h1>
     );
   }
 
@@ -44,30 +45,47 @@ export function LeagueSwitcher({ currentLeagueSlug, currentLeagueName }: Props) 
     <div className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 text-sm text-white hover:bg-white/15"
+        className="inline-flex items-center gap-2 px-2 py-1 -mx-2 -my-1 rounded-md text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+        aria-haspopup="menu"
+        aria-expanded={open}
       >
-        <span>{currentLeagueName}</span>
-        <span className="text-xs opacity-60">▾</span>
+        <span className="truncate">{currentLeagueName}</span>
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={`text-slate-400 shrink-0 transition-transform duration-150 ${open ? "rotate-180" : ""}`}
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-64 bg-white rounded-lg shadow-xl border border-slate-200 py-1 z-10">
-          <div className="px-3 py-2 text-[11px] uppercase tracking-wide font-semibold text-slate-400">
-            Switch league
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 top-full mt-1 w-64 bg-white rounded-lg shadow-xl border border-slate-200 py-1 z-20">
+            <div className="px-3 py-2 text-[11px] uppercase tracking-wide font-semibold text-slate-400">
+              Switch league
+            </div>
+            {others.map((m) => (
+              <Link
+                key={m.leagueSlug}
+                href={`/l/${m.leagueSlug}/standings`}
+                className="block px-3 py-2 text-sm text-slate-900 hover:bg-slate-100"
+                onClick={() => setOpen(false)}
+              >
+                {m.leagueName}
+                {m.role === "admin" && (
+                  <span className="ml-2 text-[10px] uppercase tracking-wide text-slate-400">Admin</span>
+                )}
+              </Link>
+            ))}
           </div>
-          {others.map((m) => (
-            <Link
-              key={m.leagueSlug}
-              href={`/l/${m.leagueSlug}/standings`}
-              className="block px-3 py-2 text-sm text-slate-900 hover:bg-slate-100"
-              onClick={() => setOpen(false)}
-            >
-              {m.leagueName}
-              {m.role === "admin" && (
-                <span className="ml-2 text-[10px] uppercase tracking-wide text-slate-400">Admin</span>
-              )}
-            </Link>
-          ))}
-        </div>
+        </>
       )}
     </div>
   );

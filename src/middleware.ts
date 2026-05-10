@@ -49,10 +49,17 @@ function hasNewSessionCookie(req: NextRequest): boolean {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  if (isPublic(pathname)) return NextResponse.next();
+  // Surface the pathname to Server Component layouts via a request header.
+  // App Router layouts don't get the URL directly; this is the official
+  // workaround so layouts can build redirect targets.
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-pathname", pathname);
+  const passthrough = NextResponse.next({ request: { headers: requestHeaders } });
 
-  if (hasNewSessionCookie(req)) return NextResponse.next();
-  if (await hasValidLegacyToken(req)) return NextResponse.next();
+  if (isPublic(pathname)) return passthrough;
+
+  if (hasNewSessionCookie(req)) return passthrough;
+  if (await hasValidLegacyToken(req)) return passthrough;
 
   const url = req.nextUrl.clone();
   url.pathname = "/sign-in";
