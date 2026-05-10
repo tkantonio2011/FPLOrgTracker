@@ -14,6 +14,7 @@ import {
   NotAuthorisedError,
   NotSignedInError,
 } from "@/lib/authz/errors";
+import { AdminTabs } from "@/components/league/AdminTabs";
 
 export default async function LeagueAdminLayout({
   children,
@@ -54,5 +55,10 @@ export default async function LeagueAdminLayout({
     throw err;
   }
 
-  return <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-5xl mx-auto">{children}</div>;
+  return (
+    <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-5xl mx-auto">
+      <AdminTabs leagueSlug={params.leagueSlug} />
+      {children}
+    </div>
+  );
 }
