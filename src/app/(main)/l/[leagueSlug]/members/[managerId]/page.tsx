@@ -99,7 +99,7 @@ function StatCard({ value, label, accent = "slate" }: StatCardProps) {
   );
 }
 
-function SeasonNarrativeCard({ managerId, currentGw, leagueName }: { managerId: string; currentGw: number | null; leagueName: string }) {
+function SeasonNarrativeCard({ leagueId, managerId, currentGw, leagueName }: { leagueId: string; managerId: string; currentGw: number | null; leagueName: string }) {
   const [narrative, setNarrative] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -116,13 +116,14 @@ function SeasonNarrativeCard({ managerId, currentGw, leagueName }: { managerId: 
     } catch { /* ignore */ }
 
     setLoading(true);
-    fetch(`/api/members/${managerId}/narrative`)
+    fetch(`/api/leagues/${leagueId}/members/${managerId}/narrative`)
       .then((r) => r.json())
-      .then((data: { narrative?: string; error?: string }) => {
-        if (data.narrative) {
-          setNarrative(data.narrative);
+      .then((envelope: { success: boolean; data?: { narrative?: string | null }; error?: string }) => {
+        const narrative = envelope.success ? envelope.data?.narrative : null;
+        if (narrative) {
+          setNarrative(narrative);
           try {
-            localStorage.setItem(cacheKey, data.narrative);
+            localStorage.setItem(cacheKey, narrative);
             for (let g = 1; g < currentGw; g++) {
               localStorage.removeItem(`season-narrative-${managerId}-gw${g}`);
             }
@@ -133,7 +134,7 @@ function SeasonNarrativeCard({ managerId, currentGw, leagueName }: { managerId: 
       })
       .catch(() => setFailed(true))
       .finally(() => setLoading(false));
-  }, [managerId, currentGw]);
+  }, [leagueId, managerId, currentGw]);
 
   if (failed || (!loading && !narrative)) return null;
 
@@ -263,7 +264,7 @@ export default function MemberPerformancePage() {
             <p className="text-sm text-slate-400 mt-0.5">{performance.teamName}</p>
           </div>
 
-          <SeasonNarrativeCard managerId={managerId} currentGw={mostRecentGw} leagueName={league.name} />
+          <SeasonNarrativeCard leagueId={league.id} managerId={managerId} currentGw={mostRecentGw} leagueName={league.name} />
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <StatCard value={performance.seasonSummary.totalPoints} label="Total Points" accent="purple" />
