@@ -244,7 +244,7 @@ export function LandingPage() {
   const [aiVerdicts, setAiVerdicts] = useState<Record<number, string>>({});
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
-  const generatedForGw = useRef<number | null>(null);
+  const generatedForGw = useRef<string | null>(null);
 
   const { data: meData } = useQuery<MeData>({
     queryKey: ["me"],
@@ -316,14 +316,17 @@ export function LandingPage() {
     ? [...standingsData.standings].sort((a, b) => b.gameweekPoints - a.gameweekPoints)
     : [];
 
-  // Load cached verdicts from localStorage when GW data arrives; auto-generate if none cached
+  // Load cached verdicts from localStorage when GW data arrives; auto-generate if none cached.
+  // Cache key includes leagueId so a multi-league member doesn't see another league's verdicts.
   useEffect(() => {
     const gwId = standingsData?.gameweekId;
-    if (!gwId || generatedForGw.current === gwId) return;
-    generatedForGw.current = gwId;
+    if (!gwId) return;
+    const cacheKey = `gw-verdicts-${league.id}-${gwId}`;
+    if (generatedForGw.current === cacheKey) return;
+    generatedForGw.current = cacheKey;
 
     try {
-      const stored = localStorage.getItem(`gw-verdicts-${gwId}`);
+      const stored = localStorage.getItem(cacheKey);
       if (stored) {
         setAiVerdicts(JSON.parse(stored) as Record<number, string>);
         return;
@@ -335,14 +338,14 @@ export function LandingPage() {
     // No cache — auto-generate
     fetchAiVerdicts();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [standingsData?.gameweekId]);
+  }, [standingsData?.gameweekId, league.id]);
 
   const fetchAiVerdicts = async () => {
     if (!standingsData || aiLoading) return;
     setAiLoading(true);
     setAiError(null);
     try {
-      const res = await fetch("/api/gw-report", {
+      const res = await fetch(`/api/leagues/${league.id}/gw-report`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -359,20 +362,25 @@ export function LandingPage() {
           })),
         }),
       });
-      const data = await res.json() as { verdicts?: { managerId: number; verdict: string }[]; error?: string };
-      if (!res.ok || !data.verdicts?.length) {
-        setAiError(data.error ?? "No verdicts returned");
+      const envelope = (await res.json()) as ApiEnvelope<{ verdicts: { managerId: number; verdict: string }[] }> & { error?: string };
+      const verdicts = envelope.success ? envelope.data?.verdicts : undefined;
+      if (!res.ok || !verdicts?.length) {
+        setAiError(envelope.error ?? "No verdicts returned");
         return;
       }
       const map: Record<number, string> = {};
-      for (const v of data.verdicts) map[v.managerId] = v.verdict;
+      for (const v of verdicts) map[v.managerId] = v.verdict;
       setAiVerdicts(map);
       try {
-        // Persist for this GW; clear previous GW entries to avoid stale data
+        // Persist for this GW under the league-keyed cache key; clear stale entries.
         const gw = standingsData.gameweekId;
-        localStorage.setItem(`gw-verdicts-${gw}`, JSON.stringify(map));
-        // Remove verdicts from older gameweeks
-        for (let i = 1; i < gw; i++) localStorage.removeItem(`gw-verdicts-${i}`);
+        localStorage.setItem(`gw-verdicts-${league.id}-${gw}`, JSON.stringify(map));
+        // Remove older entries — both this league's previous GWs and any
+        // pre-multi-league cache keys that may still be sitting around.
+        for (let i = 1; i < gw; i++) {
+          localStorage.removeItem(`gw-verdicts-${league.id}-${i}`);
+          localStorage.removeItem(`gw-verdicts-${i}`);
+        }
       } catch {
         // localStorage unavailable
       }

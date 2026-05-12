@@ -458,7 +458,9 @@ export default function H2HPage() {
 
   useEffect(() => {
     if (!data) return;
-    const key = `trash-${data.managerA.managerId}-${data.managerB.managerId}-gw${data.currentGw}`;
+    // v2 cache key is league-scoped so multi-league members don't see
+    // another league's trash talk when manager-id pairs happen to repeat.
+    const key = `trash-v2-${league.id}-${data.managerA.managerId}-${data.managerB.managerId}-gw${data.currentGw}`;
     if (generatedKey.current === key) return;
     generatedKey.current = key;
     try {
@@ -471,7 +473,7 @@ export default function H2HPage() {
       }
     } catch { /* ignore */ }
     setTalkLoading(true);
-    fetch("/api/trash-talk", {
+    fetch(`/api/leagues/${league.id}/trash-talk`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -483,13 +485,17 @@ export default function H2HPage() {
     })
       .then(async (r) => {
         if (!r.ok) return;
-        const json = (await r.json()) as { quoteA?: string; quoteB?: string };
-        if (!json.quoteA || !json.quoteB) return;
+        const envelope = (await r.json()) as { success: boolean; data?: { quoteA?: string; quoteB?: string }; error?: string };
+        const json = envelope.success ? envelope.data : null;
+        if (!json?.quoteA || !json?.quoteB) return;
         setQuoteA(json.quoteA);
         setQuoteB(json.quoteB);
         try {
           localStorage.setItem(key, JSON.stringify({ quoteA: json.quoteA, quoteB: json.quoteB }));
           for (let g = 1; g < data.currentGw; g++) {
+            // Evict this league's previous-GW entries and any pre-v2 stale keys.
+            localStorage.removeItem(`trash-v2-${league.id}-${data.managerA.managerId}-${data.managerB.managerId}-gw${g}`);
+            localStorage.removeItem(`trash-v2-${league.id}-${data.managerB.managerId}-${data.managerA.managerId}-gw${g}`);
             localStorage.removeItem(`trash-${data.managerA.managerId}-${data.managerB.managerId}-gw${g}`);
             localStorage.removeItem(`trash-${data.managerB.managerId}-${data.managerA.managerId}-gw${g}`);
           }

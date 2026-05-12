@@ -1,50 +1,70 @@
-import { NextRequest, NextResponse } from "next/server";
+/**
+ * League-scoped post-GW press-conference tribunal. The manager who finished
+ * BOTTOM of the league this GW faces three pointed questions from Malcolm
+ * Sharp, senior correspondent at The FPL Gazette.
+ *
+ * Replaces the legacy `/api/tribunal` which: (a) accepted unauthenticated
+ * POSTs, and (b) read `db.organisation` for the league-size context.
+ */
+
+import type { NextRequest } from "next/server";
 import Groq from "groq-sdk";
 import { db } from "@/lib/db";
-import {
-  fetchBootstrap,
-  fetchEntryPicks,
-  fetchEntryHistory,
-  fetchLiveGw,
-} from "@/lib/fpl/client";
+import { fetchBootstrap, fetchEntryHistory, fetchEntryPicks, fetchLiveGw } from "@/lib/fpl/client";
+import { requireLeagueMember } from "@/lib/authz/league-scope";
+import { ok, fail, failFromError } from "@/lib/http/response";
+import { parseBody, z } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
-interface TribunalRequest {
-  gameweekId: number;
-  managerId: number;
-  managerName: string;
-  teamName: string;
-  gwScore: number;
-  leagueAvg: number;
-  rankChange: number;
-  chipUsed: string | null;
-}
+const bodySchema = z.object({
+  gameweekId: z.number().int().min(1).max(38),
+  managerId: z.number().int().positive(),
+  managerName: z.string(),
+  teamName: z.string(),
+  gwScore: z.number().int(),
+  leagueAvg: z.number(),
+  rankChange: z.number().int(),
+  chipUsed: z.string().nullable(),
+});
 
-export async function POST(req: NextRequest) {
-  if (!process.env.GROQ_API_KEY) {
-    return NextResponse.json({ error: "GROQ_API_KEY not configured" }, { status: 501 });
-  }
-
-  let body: TribunalRequest;
+export async function POST(
+  req: NextRequest,
+  ctx: { params: { leagueId: string } },
+) {
   try {
-    body = (await req.json()) as TribunalRequest;
-  } catch {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-  }
+    const { league } = await requireLeagueMember(req, ctx.params.leagueId);
 
-  const { gameweekId, managerId, managerName, teamName, gwScore, leagueAvg, rankChange, chipUsed } = body;
+    if (!process.env.GROQ_API_KEY) {
+      return fail("GROQ_API_KEY not configured", 501);
+    }
 
-  try {
-    const org = await db.organisation.findFirst({
-      include: { members: { where: { isActive: true } } },
+    const body = await parseBody(req, bodySchema);
+    const { gameweekId, managerId, managerName, teamName, gwScore, leagueAvg, rankChange, chipUsed } = body;
+
+    // Confirm the target manager actually belongs to this league.
+    const target = await db.leagueMembership.findUnique({
+      where: { leagueId_managerId: { leagueId: league.id, managerId } },
     });
-    if (!org) return NextResponse.json({ error: "ORG_NOT_CONFIGURED" }, { status: 404 });
+    if (!target || !target.isActive) {
+      return fail("Manager is not an active member of this league", 404);
+    }
 
-    const bootstrap = await fetchBootstrap();
+    // League size for prompt context.
+    const leagueSize = await db.leagueMembership.count({
+      where: { leagueId: league.id, isActive: true },
+    });
+
+    let bootstrap;
+    try {
+      bootstrap = await fetchBootstrap();
+    } catch {
+      return fail("FPL API unavailable", 503);
+    }
     const playersById = new Map(bootstrap.elements.map((e) => [e.id, e]));
 
-    // ── Captain name + pts ────────────────────────────────────────────────────
+    // ── Captain name + pts ──────────────────────────────────────────────────
     let captainName = "their captain";
     let captainPts: number | null = null;
 
@@ -56,8 +76,6 @@ export async function POST(req: NextRequest) {
         captainName = player
           ? `${player.first_name} ${player.second_name}`
           : "their captain";
-
-        // Live GW data for captain's actual score
         try {
           const liveGw = await fetchLiveGw(gameweekId);
           const liveEl = liveGw.elements.find((e) => e.id === captainPick.element);
@@ -70,28 +88,27 @@ export async function POST(req: NextRequest) {
       // Picks unavailable (private team or future GW) — proceed without captain info
     }
 
-    // ── Bench pts + transfer cost for this GW ────────────────────────────────
+    // ── Bench pts + transfer cost for this GW ───────────────────────────────
     let benchPts: number | null = null;
     let hitCost: number | null = null;
     let seasonTotal: number | null = null;
-    const leagueSize = org.members.length;
 
     try {
       const history = await fetchEntryHistory(managerId);
       const gwEntry = history.current.find((e) => e.event === gameweekId);
       if (gwEntry) {
         benchPts = gwEntry.points_on_bench;
-        hitCost  = gwEntry.event_transfers_cost;
+        hitCost = gwEntry.event_transfers_cost;
         seasonTotal = gwEntry.total_points;
       }
     } catch {
       // History unavailable — proceed without
     }
 
-    // ── Build context ─────────────────────────────────────────────────────────
+    // ── Build context ───────────────────────────────────────────────────────
     const firstName = managerName.split(" ")[0];
-    const ptsDiff   = gwScore - leagueAvg;
-    const chipLine  = chipUsed ? `Chip played this GW: ${chipUsed}` : "No chip played";
+    const ptsDiff = gwScore - leagueAvg;
+    const chipLine = chipUsed ? `Chip played this GW: ${chipUsed}` : "No chip played";
 
     const contextLines = [
       `Manager: ${managerName} ("${teamName}")`,
@@ -102,16 +119,17 @@ export async function POST(req: NextRequest) {
       benchPts !== null ? `Bench pts left on the bench this GW: ${benchPts}` : null,
       hitCost && hitCost > 0 ? `Transfer hit cost paid this GW: −${hitCost} pts` : "No transfer hits taken",
       chipLine,
-      rankChange < 0 ? `League rank change: dropped ${Math.abs(rankChange)} place${Math.abs(rankChange) !== 1 ? "s" : ""}` :
-        rankChange > 0 ? `League rank change: climbed ${rankChange} place${rankChange !== 1 ? "s" : ""}` :
-        "League rank: unchanged",
+      rankChange < 0
+        ? `League rank change: dropped ${Math.abs(rankChange)} place${Math.abs(rankChange) !== 1 ? "s" : ""}`
+        : rankChange > 0
+          ? `League rank change: climbed ${rankChange} place${rankChange !== 1 ? "s" : ""}`
+          : "League rank: unchanged",
       seasonTotal !== null ? `Season total so far: ${seasonTotal} pts` : null,
       `League size: ${leagueSize} managers`,
     ]
       .filter(Boolean)
       .join("\n");
 
-    // ── Groq prompt ───────────────────────────────────────────────────────────
     const prompt = `You are writing a fictional post-GW FPL press conference for a private fantasy football mini-league.
 
 ${firstName} has just finished BOTTOM of the league this gameweek. They must face three pointed questions from Malcolm Sharp, senior correspondent at The FPL Gazette.
@@ -145,10 +163,10 @@ General rules:
 
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
     const completion = await groq.chat.completions.create({
-      model:       "llama-3.1-8b-instant",
-      messages:    [{ role: "user", content: prompt }],
+      model: "llama-3.1-8b-instant",
+      messages: [{ role: "user", content: prompt }],
       temperature: 1.15,
-      max_tokens:  600,
+      max_tokens: 600,
       response_format: { type: "json_object" },
     });
 
@@ -159,22 +177,21 @@ General rules:
     };
 
     if (!parsed.intro || !Array.isArray(parsed.qa) || parsed.qa.length === 0) {
-      return NextResponse.json({ error: "Malformed AI response" }, { status: 500 });
+      return fail("Malformed AI response", 500);
     }
 
-    return NextResponse.json({
-      gw:          gameweekId,
+    return ok({
+      gw: gameweekId,
       managerId,
       managerName,
       teamName,
       gwScore,
       captainName,
       captainPts,
-      intro:       parsed.intro,
-      qa:          parsed.qa.slice(0, 3),
+      intro: parsed.intro,
+      qa: parsed.qa.slice(0, 3),
     });
   } catch (err) {
-    console.error("[POST /api/tribunal]", err);
-    return NextResponse.json({ error: "Failed to generate tribunal" }, { status: 500 });
+    return failFromError(err);
   }
 }
