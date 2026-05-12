@@ -61,7 +61,12 @@ export default function LeagueStandingsPage() {
 
   const { data: titlesData } = useQuery<{ titles: ManagerTitle[] }>({
     queryKey: ["titles", league.id],
-    queryFn: () => fetch("/api/titles").then((r) => r.json()),
+    queryFn: async () => {
+      const r = await fetch(`/api/leagues/${league.id}/titles`);
+      const body = (await r.json()) as { success: boolean; data?: { titles: ManagerTitle[] }; error?: string };
+      if (!r.ok || !body.success || !body.data) throw new Error(body.error ?? "Titles failed");
+      return body.data;
+    },
     staleTime: 300_000,
   });
   const titlesMap = titlesData ? new Map(titlesData.titles.map((t) => [t.managerId, t])) : undefined;

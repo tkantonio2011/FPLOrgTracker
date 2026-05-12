@@ -2,6 +2,11 @@
  * League selector. Shown when a signed-in user has no `leagueSlug` in the URL
  * and we need to pick one. If they belong to exactly one active league, we
  * redirect straight to it. Otherwise list the leagues for them to choose.
+ *
+ * Honours `?next=<path>` for legacy-URL forwarding: when the middleware
+ * redirects e.g. `/standings` here, we preserve the route segment so the
+ * user lands at `/l/{their-slug}/standings` rather than the default
+ * `/l/{their-slug}/standings`. Sanitised against open-redirect.
  */
 
 import { cookies } from "next/headers";
@@ -13,10 +18,30 @@ import { getServerUserFromCookie } from "@/lib/auth/current-user";
 
 export const dynamic = "force-dynamic";
 
-export default async function LeaguesPage() {
+/**
+ * Sanitise the `next` param to a same-origin relative path. Returns "" if
+ * the value is missing, malformed, or attempts an external redirect.
+ */
+function safeNext(raw: string | string[] | undefined): string {
+  if (!raw) return "";
+  const v = Array.isArray(raw) ? raw[0] : raw;
+  if (!v.startsWith("/")) return "";
+  if (v.startsWith("//")) return ""; // protocol-relative
+  if (v.startsWith("/l/")) return ""; // already in a league shell — don't loop
+  return v;
+}
+
+interface PageProps {
+  searchParams?: { next?: string };
+}
+
+export default async function LeaguesPage({ searchParams }: PageProps) {
   const token = cookies().get(SESSION_COOKIE_NAME)?.value;
   const user = await getServerUserFromCookie(token);
   if (!user) redirect("/sign-in?redirect=/leagues");
+
+  const next = safeNext(searchParams?.next);
+  const targetSegment = next || "/standings";
 
   const memberships = await db.leagueMembership.findMany({
     where: { userAccountId: user.userAccount.id, isActive: true },
@@ -26,7 +51,7 @@ export default async function LeaguesPage() {
   const active = memberships.filter((m) => m.league.status !== "suspended");
 
   if (active.length === 1) {
-    redirect(`/l/${active[0].league.slug}/standings`);
+    redirect(`/l/${active[0].league.slug}${targetSegment}`);
   }
 
   if (active.length === 0) {
@@ -52,7 +77,7 @@ export default async function LeaguesPage() {
           {active.map((m) => (
             <li key={m.id}>
               <Link
-                href={`/l/${m.league.slug}/standings`}
+                href={`/l/${m.league.slug}${targetSegment}`}
                 className="flex items-center justify-between px-4 py-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
               >
                 <span className="font-medium text-slate-900">{m.league.name}</span>

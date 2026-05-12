@@ -25,8 +25,44 @@ const PUBLIC_PREFIXES = [
   "/favicon.ico",
 ];
 
+/**
+ * Legacy single-tenant URLs that have league-scoped equivalents under
+ * `/l/[leagueSlug]/`. A signed-in user hitting one of these gets redirected
+ * to `/leagues?next=<original-path>` — the league chooser then forwards them
+ * to `/l/{their-slug}/<original-path>` (or shows the chooser if they have
+ * multiple leagues).
+ *
+ * `wall-of-shame` is intentionally absent: no league-scoped equivalent
+ * exists yet, so the legacy page is still the canonical entrypoint.
+ */
+const LEGACY_REDIRECT_PATTERNS = [
+  "/standings",
+  "/agony",
+  "/bench",
+  "/captain-history",
+  "/captain-whatif",
+  "/differentials",
+  "/form",
+  "/h2h",
+  "/live",
+  "/luck",
+  "/ownership",
+  "/player-status",
+  "/regret",
+  "/season-stats",
+  "/transfers",
+  "/members",
+  "/suggestions",
+];
+
 function isPublic(pathname: string): boolean {
   return PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p));
+}
+
+function isLegacyRedirect(pathname: string): boolean {
+  return LEGACY_REDIRECT_PATTERNS.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  );
 }
 
 async function hasValidLegacyToken(req: NextRequest): Promise<boolean> {
@@ -54,8 +90,21 @@ export async function middleware(req: NextRequest) {
 
   if (isPublic(pathname)) return passthrough;
 
-  if (hasNewSessionCookie(req)) return passthrough;
-  if (await hasValidLegacyToken(req)) return passthrough;
+  const signedIn = hasNewSessionCookie(req) || (await hasValidLegacyToken(req));
+
+  // Redirect legacy single-tenant URLs to the league chooser, which forwards
+  // the user into their league. We only do this when signed in — unsigned
+  // users fall through to the sign-in redirect below, then come back here
+  // after authenticating.
+  if (signedIn && isLegacyRedirect(pathname)) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/leagues";
+    url.search = "";
+    url.searchParams.set("next", pathname);
+    return NextResponse.redirect(url);
+  }
+
+  if (signedIn) return passthrough;
 
   const url = req.nextUrl.clone();
   url.pathname = "/sign-in";
