@@ -1,4 +1,12 @@
-import { NextResponse } from "next/server";
+/**
+ * League-scoped Wall of Shame — computes season-long "achievements of
+ * suffering" trophies (most bench points, biggest transfer hit, lowest
+ * single GW score, worst captain blank, worst individual transfer).
+ *
+ * Replaces the legacy `/api/wall-of-shame` which read `db.organisation`.
+ */
+
+import type { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import {
   fetchBootstrap,
@@ -8,8 +16,11 @@ import {
   fetchLiveGw,
   getCurrentGw,
 } from "@/lib/fpl/client";
+import { requireLeagueMember } from "@/lib/authz/league-scope";
+import { ok, fail, failFromError } from "@/lib/http/response";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export interface ShameRecord {
   id: string;
@@ -30,44 +41,51 @@ export interface WallOfShameResponse {
   currentGw: number;
 }
 
-export async function GET() {
+export async function GET(
+  req: NextRequest,
+  ctx: { params: { leagueId: string } },
+) {
   try {
-    const org = await db.organisation.findFirst({
-      include: { members: { where: { isActive: true } } },
+    const { league } = await requireLeagueMember(req, ctx.params.leagueId);
+
+    const memberships = await db.leagueMembership.findMany({
+      where: { leagueId: league.id, isActive: true },
     });
-    if (!org || org.members.length === 0) {
-      return NextResponse.json(
-        { error: "Organisation not configured", code: "ORG_NOT_CONFIGURED" },
-        { status: 404 }
-      );
+    if (memberships.length === 0) {
+      return ok({ records: [] as ShameRecord[], currentGw: 0 });
     }
 
-    const bootstrap = await fetchBootstrap();
+    let bootstrap;
+    try {
+      bootstrap = await fetchBootstrap();
+    } catch {
+      return fail("FPL API unavailable", 503);
+    }
     const currentGw = getCurrentGw(bootstrap.events);
     const playerName = new Map(bootstrap.elements.map((e) => [e.id, e.web_name]));
 
     // Fetch all histories + transfers in parallel
     const memberData = await Promise.all(
-      org.members.map(async (m) => {
+      memberships.map(async (m) => {
         const [history, transfers] = await Promise.all([
           fetchEntryHistory(m.managerId),
           fetchEntryTransfers(m.managerId),
         ]);
         return { member: m, history, transfers };
-      })
+      }),
     );
 
     // All played GWs
     const playedGws = Array.from(
       new Set(
         memberData.flatMap(({ history }) =>
-          history.current.map((e) => e.event).filter((gw) => gw <= currentGw)
-        )
-      )
+          history.current.map((e) => e.event).filter((gw) => gw <= currentGw),
+        ),
+      ),
     ).sort((a, b) => a - b);
 
     if (playedGws.length === 0) {
-      return NextResponse.json({ records: [], currentGw });
+      return ok({ records: [] as ShameRecord[], currentGw });
     }
 
     // Live pts for every played GW
@@ -76,7 +94,7 @@ export async function GET() {
       playedGws.map(async (gw) => {
         const live = await fetchLiveGw(gw);
         liveByGw.set(gw, new Map(live.elements.map((el) => [el.id, el.stats.total_points])));
-      })
+      }),
     );
 
     // Captain picks for every member × GW
@@ -93,11 +111,11 @@ export async function GET() {
           } catch {
             // GW not played by this manager — skip
           }
-        })
-      )
+        }),
+      ),
     );
 
-    // ── Compute records ─────────────────────────────────────────────────────────
+    // ── Compute records ─────────────────────────────────────────────────────
 
     type CandidateBase = { managerId: number; displayName: string; teamName: string };
 
@@ -182,13 +200,20 @@ export async function GET() {
     }
 
     // 6. Worst individual transfer (lowest net pts: player sold then in-player flopped)
-    type BadTransfer = CandidateBase & { net: number; gw: number; inName: string; outName: string; inPts: number; outPts: number };
+    type BadTransfer = CandidateBase & {
+      net: number;
+      gw: number;
+      inName: string;
+      outName: string;
+      inPts: number;
+      outPts: number;
+    };
     let worstTransfer: BadTransfer | null = null;
     for (const { member, transfers } of memberData) {
       for (const t of transfers) {
         if (t.event > currentGw) continue;
         const gwLive = liveByGw.get(t.event);
-        const inPts  = gwLive?.get(t.element_in)  ?? 0;
+        const inPts = gwLive?.get(t.element_in) ?? 0;
         const outPts = gwLive?.get(t.element_out) ?? 0;
         const net = inPts - outPts;
         if (!worstTransfer || net < worstTransfer.net) {
@@ -198,7 +223,7 @@ export async function GET() {
             teamName: member.teamName ?? "",
             net,
             gw: t.event,
-            inName:  playerName.get(t.element_in)  ?? `#${t.element_in}`,
+            inName: playerName.get(t.element_in) ?? `#${t.element_in}`,
             outName: playerName.get(t.element_out) ?? `#${t.element_out}`,
             inPts,
             outPts,
@@ -207,7 +232,7 @@ export async function GET() {
       }
     }
 
-    // ── Assemble records ────────────────────────────────────────────────────────
+    // ── Assemble records ────────────────────────────────────────────────────
 
     const records: ShameRecord[] = [];
 
@@ -263,12 +288,12 @@ export async function GET() {
         icon: "🫡",
         winner: { managerId: worstCaptainBlank.managerId, displayName: worstCaptainBlank.displayName, teamName: worstCaptainBlank.teamName },
         stat: `${worstCaptainBlank.pts} pts`,
-        detail: `GW${(worstCaptainBlank as CaptainBlank).gw} — ${(worstCaptainBlank as CaptainBlank).playerName} (C) scored ${worstCaptainBlank.pts}`,
+        detail: `GW${worstCaptainBlank.gw} — ${worstCaptainBlank.playerName} (C) scored ${worstCaptainBlank.pts}`,
       });
     }
 
     if (worstTransfer) {
-      const wt = worstTransfer as BadTransfer;
+      const wt = worstTransfer;
       records.push({
         id: "regret",
         trophy: "The Regret Machine",
@@ -280,12 +305,8 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json({ records, currentGw });
+    return ok({ records, currentGw });
   } catch (err) {
-    console.error("[GET /api/wall-of-shame]", err);
-    return NextResponse.json(
-      { error: "Failed to compute wall of shame", code: "FPL_ERROR" },
-      { status: 500 }
-    );
+    return failFromError(err);
   }
 }

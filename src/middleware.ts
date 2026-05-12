@@ -31,9 +31,6 @@ const PUBLIC_PREFIXES = [
  * to `/leagues?next=<original-path>` — the league chooser then forwards them
  * to `/l/{their-slug}/<original-path>` (or shows the chooser if they have
  * multiple leagues).
- *
- * `wall-of-shame` is intentionally absent: no league-scoped equivalent
- * exists yet, so the legacy page is still the canonical entrypoint.
  */
 const LEGACY_REDIRECT_PATTERNS = [
   "/standings",
@@ -53,6 +50,7 @@ const LEGACY_REDIRECT_PATTERNS = [
   "/transfers",
   "/members",
   "/suggestions",
+  "/wall-of-shame",
 ];
 
 function isPublic(pathname: string): boolean {

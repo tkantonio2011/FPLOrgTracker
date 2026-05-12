@@ -2,14 +2,36 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import type { ShameRecord, WallOfShameResponse } from "@/app/api/wall-of-shame/route";
+import { useLeague } from "@/components/league/LeagueProvider";
 
-// ── Trophy Card ───────────────────────────────────────────────────────────────
+interface ShameRecord {
+  id: string;
+  trophy: string;
+  subtitle: string;
+  icon: string;
+  winner: {
+    managerId: number;
+    displayName: string;
+    teamName: string;
+  };
+  stat: string;
+  detail: string;
+}
 
-function TrophyCard({ record }: { record: ShameRecord }) {
+interface WallOfShameResponse {
+  records: ShameRecord[];
+  currentGw: number;
+}
+
+interface ApiEnvelope<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
+function TrophyCard({ record, leagueSlug }: { record: ShameRecord; leagueSlug: string }) {
   return (
     <div className="relative flex flex-col bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-card group hover:shadow-md transition-shadow duration-200">
-      {/* Dark header strip */}
       <div className="bg-slate-900 px-5 pt-5 pb-4">
         <div className="flex items-start justify-between gap-3 mb-3">
           <span className="text-4xl leading-none" role="img" aria-label={record.trophy}>
@@ -23,21 +45,19 @@ function TrophyCard({ record }: { record: ShameRecord }) {
         <p className="text-xs text-slate-400 mt-1 leading-snug">{record.subtitle}</p>
       </div>
 
-      {/* Winner section */}
       <div className="px-5 py-4 flex-1 flex flex-col justify-between gap-3">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-1">
             Awarded to
           </p>
           <Link
-            href={`/members/${record.winner.managerId}`}
+            href={`/l/${leagueSlug}/members/${record.winner.managerId}`}
             className="text-xl font-black text-red-600 hover:text-red-700 transition-colors leading-tight block"
           >
             {record.winner.displayName}
           </Link>
         </div>
 
-        {/* Stat */}
         <div className="border-t border-slate-100 pt-3">
           <p className="text-3xl font-black text-slate-900 tabular-nums leading-none">
             {record.stat}
@@ -46,7 +66,6 @@ function TrophyCard({ record }: { record: ShameRecord }) {
         </div>
       </div>
 
-      {/* Shame ribbon */}
       <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
         <span className="text-[8px] font-black uppercase tracking-widest bg-red-600 text-white px-1.5 py-0.5 rounded-full">
           Shame
@@ -55,8 +74,6 @@ function TrophyCard({ record }: { record: ShameRecord }) {
     </div>
   );
 }
-
-// ── Skeleton ─────────────────────────────────────────────────────────────────
 
 function CardSkeleton() {
   return (
@@ -74,23 +91,21 @@ function CardSkeleton() {
   );
 }
 
-// ── Page ─────────────────────────────────────────────────────────────────────
-
 export default function WallOfShamePage() {
+  const { league } = useLeague();
   const { data, isLoading, isError } = useQuery<WallOfShameResponse>({
-    queryKey: ["wall-of-shame"],
+    queryKey: ["wall-of-shame", league.id],
     queryFn: async () => {
-      const r = await fetch("/api/wall-of-shame");
-      const json = await r.json();
-      if (!r.ok) throw json;
-      return json;
+      const r = await fetch(`/api/leagues/${league.id}/wall-of-shame`);
+      const body = (await r.json()) as ApiEnvelope<WallOfShameResponse>;
+      if (!r.ok || !body.success || !body.data) throw new Error(body.error ?? "Wall of shame failed");
+      return body.data;
     },
     staleTime: 300_000,
   });
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Wall of Shame</h1>
         <p className="text-sm text-slate-400 mt-0.5">
@@ -98,7 +113,6 @@ export default function WallOfShamePage() {
         </p>
       </div>
 
-      {/* Banner */}
       <div className="bg-slate-900 rounded-2xl px-6 py-5 flex items-center gap-4">
         <span className="text-4xl" role="img" aria-label="trophy">🏆</span>
         <div>
@@ -110,25 +124,22 @@ export default function WallOfShamePage() {
         </div>
       </div>
 
-      {/* Error */}
       {isError && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
           Unable to load the Wall of Shame. The FPL API may be temporarily unavailable.
         </div>
       )}
 
-      {/* Loading */}
       {isLoading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} />)}
         </div>
       )}
 
-      {/* Trophy grid */}
       {data && data.records.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {data.records.map((record) => (
-            <TrophyCard key={record.id} record={record} />
+            <TrophyCard key={record.id} record={record} leagueSlug={league.slug} />
           ))}
         </div>
       )}
@@ -141,7 +152,6 @@ export default function WallOfShamePage() {
         </div>
       )}
 
-      {/* Footer note */}
       {data && data.records.length > 0 && (
         <p className="text-xs text-slate-400 text-center pb-2">
           Records reflect cumulative season stats up to GW{data.currentGw}.

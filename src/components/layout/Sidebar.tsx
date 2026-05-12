@@ -200,7 +200,7 @@ const navGroups: NavGroup[] = [
       { path: "/agony", label: "Agony Index", icon: <FrownIcon /> },
       { path: "/luck", label: "Luck Ranking", icon: <DiceIcon /> },
       { path: "/captain-whatif", label: "Captain What-If", icon: <ArmBandIcon /> },
-      { path: "/wall-of-shame", label: "Wall of Shame", icon: <ShameIcon />, platform: true },
+      { path: "/wall-of-shame", label: "Wall of Shame", icon: <ShameIcon /> },
     ],
   },
   {
@@ -214,7 +214,7 @@ const navGroups: NavGroup[] = [
   },
   {
     items: [
-      { path: "/admin", label: "Admin", icon: <SettingsIcon />, platform: true },
+      { path: "/admin", label: "Admin", icon: <SettingsIcon /> },
     ],
   },
 ];
