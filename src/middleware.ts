@@ -18,10 +18,6 @@ const PUBLIC_PREFIXES = [
   "/sign-in",
   "/verify",
   "/invitations",
-  // Legacy admin PIN page is still public until the new league-admin shell
-  // (T052–T056) replaces it. Once `(main)/admin/page.tsx` is deleted this
-  // entry can go too.
-  "/admin",
   // API routes self-authenticate
   "/api/",
   // Framework / static
