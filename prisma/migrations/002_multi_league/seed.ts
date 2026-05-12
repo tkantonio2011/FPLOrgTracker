@@ -94,16 +94,31 @@ async function ensureSuperAdmin(): Promise<void> {
 }
 
 async function migrateOrg(org: { id: string; name: string; miniLeagueId: number | null; digestPrompt: string | null; digestCacheGw: number | null; digestCacheJson: string | null }): Promise<void> {
-  const slug = await generateSlug(org.name);
-
-  // Idempotency: if a league with this slug already exists, assume migration
-  // already ran for this org and skip the data copy.
-  const existingLeague = await db.league.findUnique({ where: { slug } });
-  if (existingLeague) {
-    console.log(`[seed] league with slug "${slug}" already exists — skipping data copy for org ${org.id}`);
-    await ensureLeagueAdminPromotion(existingLeague.id);
-    return;
+  // Idempotency: was this org migrated before? `generateSlug` always picks a
+  // free slug so we can't detect re-runs from slug collisions alone. Look up
+  // the `migration.completed` AuditEvent whose details carry `legacyOrgId`.
+  const completedEvents = await db.auditEvent.findMany({
+    where: { action: "migration.completed" },
+    select: { leagueId: true, details: true },
+  });
+  for (const evt of completedEvents) {
+    if (!evt.details || !evt.leagueId) continue;
+    try {
+      const parsed = JSON.parse(evt.details) as { legacyOrgId?: string };
+      if (parsed.legacyOrgId === org.id) {
+        const existing = await db.league.findUnique({ where: { id: evt.leagueId } });
+        if (existing) {
+          console.log(`[seed] org ${org.id} already migrated to league "${existing.slug}" — refreshing admin promotion only`);
+          await ensureLeagueAdminPromotion(existing.id);
+          return;
+        }
+      }
+    } catch {
+      // Malformed details — fall through.
+    }
   }
+
+  const slug = await generateSlug(org.name);
 
   console.log(`[seed] migrating organisation "${org.name}" → league slug "${slug}"`);
 

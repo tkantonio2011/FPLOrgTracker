@@ -117,10 +117,12 @@ fpl-org-tracker/                      ← repo root (name kept; could be renamed
 
 ### 6. Migration Day (Existing Deployment Upgrade)
 
-1. **Before deploy**: take a SQLite backup (`cp prisma/dev.db prisma/dev.db.pre-002`).
+1. **Before deploy**: take a SQLite backup (`cp prisma/dev.db prisma/dev.db.pre-002`). Keep this file — it is the rollback path. See `prisma/migrations/002_multi_league/rollback.md`.
 2. **Set env**: `BOOTSTRAP_SUPER_ADMIN_EMAIL`, `BOOTSTRAP_LEAGUE_ADMIN_EMAIL` (the existing deployment's primary admin), `SMTP_*`.
 3. **Deploy** the new build.
-4. Run `npx prisma migrate deploy` then `npm run db:seed`.
+4. Apply the schema and run the seed:
+   - This codebase manages its schema with `prisma db push` (no migration history exists yet) — run `npx prisma db push --skip-generate --accept-data-loss`. The schema is expand-only: legacy `Organisation` / `Member` / `User` tables are left in place; new tables are added alongside. No existing row is modified by the schema push itself.
+   - Run `npm run db:seed` (executes `tsx prisma/migrations/002_multi_league/seed.ts`). The seed is idempotent — re-running it does nothing if the org has already been migrated (detected via the `migration.completed` AuditEvent that carries `legacyOrgId`).
 5. Confirm in the app: visit `/sign-in`, enter the bootstrap super-admin email, follow the magic-link, verify the migrated league appears in `/platform/leagues` with all historical members.
 6. Notify members: "We've moved to passwordless sign-in. Visit /sign-in and enter your work email."
 
@@ -172,7 +174,7 @@ npm run dev
 # 4. Open the link → signed in → redirected to /platform
 ```
 
-For an upgrade from an existing 001-shaped DB, run `npm run db:seed` after `npx prisma migrate deploy` — it detects the existing single Organisation and converts it to the first League.
+For an upgrade from an existing 001-shaped DB, run `npm run db:seed` after `npx prisma db push --skip-generate --accept-data-loss` — it detects the existing single Organisation and converts it to the first League.
 
 ---
 
