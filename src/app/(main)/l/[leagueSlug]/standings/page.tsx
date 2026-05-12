@@ -47,8 +47,13 @@ export default function LeagueStandingsPage() {
   const [selectedGw, setSelectedGw] = useState<number | null>(null);
 
   const { data: gwData } = useQuery<GameweeksData>({
-    queryKey: ["gameweeks"],
-    queryFn: () => fetch("/api/gameweeks").then((r) => r.json()),
+    queryKey: ["gameweeks", league.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${league.id}/gameweeks`);
+      const body = (await res.json()) as { success: boolean; data?: GameweeksData; error?: string };
+      if (!res.ok || !body.success || !body.data) throw new Error(body.error ?? "Gameweeks failed");
+      return body.data;
+    },
     staleTime: 300_000,
   });
   const currentGw = gwData?.currentGameweek;
