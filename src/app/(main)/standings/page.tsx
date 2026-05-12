@@ -110,7 +110,7 @@ export default function StandingsPage() {
       {data && (
         <LeaderboardTable
           standings={data.standings}
-          orgAverageGwPoints={data.orgAverageGwPoints}
+          leagueAverageGwPoints={data.orgAverageGwPoints}
           globalAverageGwPoints={data.globalAverageGwPoints}
           titles={titlesMap}
         />

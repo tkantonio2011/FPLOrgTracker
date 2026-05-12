@@ -101,7 +101,7 @@ export default function LeagueStandingsPage() {
       {standings && (
         <LeaderboardTable
           standings={standings.standings}
-          orgAverageGwPoints={standings.leagueAverageGwPoints}
+          leagueAverageGwPoints={standings.leagueAverageGwPoints}
           globalAverageGwPoints={standings.globalAverageGwPoints}
           titles={titlesMap}
         />

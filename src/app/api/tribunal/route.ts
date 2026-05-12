@@ -16,7 +16,7 @@ interface TribunalRequest {
   managerName: string;
   teamName: string;
   gwScore: number;
-  orgAvg: number;
+  leagueAvg: number;
   rankChange: number;
   chipUsed: string | null;
 }
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const { gameweekId, managerId, managerName, teamName, gwScore, orgAvg, rankChange, chipUsed } = body;
+  const { gameweekId, managerId, managerName, teamName, gwScore, leagueAvg, rankChange, chipUsed } = body;
 
   try {
     const org = await db.organisation.findFirst({
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
     let benchPts: number | null = null;
     let hitCost: number | null = null;
     let seasonTotal: number | null = null;
-    let orgSize = org.members.length;
+    const leagueSize = org.members.length;
 
     try {
       const history = await fetchEntryHistory(managerId);
@@ -90,12 +90,12 @@ export async function POST(req: NextRequest) {
 
     // ── Build context ─────────────────────────────────────────────────────────
     const firstName = managerName.split(" ")[0];
-    const ptsDiff   = gwScore - orgAvg;
+    const ptsDiff   = gwScore - leagueAvg;
     const chipLine  = chipUsed ? `Chip played this GW: ${chipUsed}` : "No chip played";
 
     const contextLines = [
       `Manager: ${managerName} ("${teamName}")`,
-      `GW${gameweekId} score: ${gwScore} pts — BOTTOM of the org (org average: ${orgAvg} pts, gap: ${ptsDiff} pts)`,
+      `GW${gameweekId} score: ${gwScore} pts — BOTTOM of the league (league average: ${leagueAvg} pts, gap: ${ptsDiff} pts)`,
       captainPts !== null
         ? `Captain: ${captainName} — scored ${captainPts} pts (captain gets ${captainPts * 2} pts after multiplier)`
         : `Captain: ${captainName}`,
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
         rankChange > 0 ? `League rank change: climbed ${rankChange} place${rankChange !== 1 ? "s" : ""}` :
         "League rank: unchanged",
       seasonTotal !== null ? `Season total so far: ${seasonTotal} pts` : null,
-      `Org size: ${orgSize} managers`,
+      `League size: ${leagueSize} managers`,
     ]
       .filter(Boolean)
       .join("\n");

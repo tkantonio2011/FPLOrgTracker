@@ -11,6 +11,7 @@ import { GwTribunal } from "./GwTribunal";
 import { GwPunishment } from "./GwPunishment";
 import { PainCounter } from "./PainCounter";
 import { GwHoroscope } from "./GwHoroscope";
+import { useLeague } from "@/components/league/LeagueProvider";
 
 const QUOTES = [
   "FPL: the only game where a knee injury to a stranger ruins your weekend.",
@@ -62,11 +63,11 @@ function gwVerdict(
   entry: PerformanceEntry,
   rank: number,
   total: number,
-  orgAvg: number,
+  leagueAvg: number,
   globalAvg: number
 ): string {
   const pts = entry.gameweekPoints;
-  const vsOrg = pts - orgAvg;
+  const vsLeague = pts - leagueAvg;
   const vsGlobal = pts - globalAvg;
   const chip = entry.chipUsed ? CHIP_LABELS[entry.chipUsed] ?? entry.chipUsed : null;
   const isFirst = rank === 1;
@@ -80,32 +81,32 @@ function gwVerdict(
 
   // ── Chip verdicts ────────────────────────────────────────────────────────────
   if (chip === "Wildcard") {
-    if (vsOrg >= 10)
-      return `${firstName} blew up the squad, rebuilt from scratch, and came out ${vsOrg} pts above the org average. Full platform migration, zero downtime. Compliance is impressed.`;
-    if (vsOrg >= 0)
-      return `Wildcard played by ${firstName} — a complete system overhaul that landed just above the org average. Marginal gains, stable uptime. Sprint review was fine, honestly.`;
-    return `${firstName} wildcarded "${team}" and still finished ${Math.abs(vsOrg)} pts below the org average. Even a full platform rewrite couldn't save this deployment. IT helpdesk is concerned.`;
+    if (vsLeague >= 10)
+      return `${firstName} blew up the squad, rebuilt from scratch, and came out ${vsLeague} pts above the league average. Full platform migration, zero downtime. Compliance is impressed.`;
+    if (vsLeague >= 0)
+      return `Wildcard played by ${firstName} — a complete system overhaul that landed just above the league average. Marginal gains, stable uptime. Sprint review was fine, honestly.`;
+    return `${firstName} wildcarded "${team}" and still finished ${Math.abs(vsLeague)} pts below the league average. Even a full platform rewrite couldn't save this deployment. IT helpdesk is concerned.`;
   }
   if (chip === "Bench Boost") {
-    if (vsOrg >= 10)
-      return `${firstName}'s bench delivered like a peak-hour gas pipeline — every unit accounted for, ${pts} pts total, maximum throughput. The reserves earned their keep this week.`;
-    if (vsOrg >= 0)
+    if (vsLeague >= 10)
+      return `${firstName}'s bench delivered like a well-tuned production line — every unit accounted for, ${pts} pts total, maximum throughput. The reserves earned their keep this week.`;
+    if (vsLeague >= 0)
       return `Bench Boost played by ${firstName}. The reserves clocked in, did their jobs, went home. Capacity utilisation: adequate. The ${team} subs were quietly professional.`;
     return `${firstName} activated the Bench Boost and the bench scored as if it were a Friday afternoon before a bank holiday. A cautionary tale about redundant systems at "${team}".`;
   }
   if (chip === "Triple Captain") {
-    if (vsOrg >= 15)
-      return `${firstName}'s Triple Captain landed perfectly — ${pts} pts, ${vsOrg} above the org average. Like hedging an energy contract at the exact peak. Pure alpha. Screenshot saved.`;
-    if (vsOrg >= 0)
-      return `${firstName} tripled the captain and scraped above average. The upside was modest — like pricing a long-term gas deal on a calm Tuesday in February. Expected more, got adequate.`;
-    return `${firstName} Triple Captained someone who blanked, bringing "${team}" to just ${pts} pts. The sort of position sizing decision that gets people cc'd on a very uncomfortable email chain.`;
+    if (vsLeague >= 15)
+      return `${firstName}'s Triple Captain landed perfectly — ${pts} pts, ${vsLeague} above the league average. Like timing a futures contract at the exact peak. Pure alpha. Screenshot saved.`;
+    if (vsLeague >= 0)
+      return `${firstName} tripled the captain and scraped above average. The upside was modest — like pricing a long-term contract on a calm Tuesday in February. Expected more, got adequate.`;
+    return `${firstName} Triple Captained someone who blanked, bringing "${team}" to just ${pts} pts. The sort of position-sizing decision that gets people cc'd on a very uncomfortable email chain.`;
   }
   if (chip === "Free Hit") {
-    if (vsOrg >= 10)
-      return `${firstName}'s Free Hit was a masterclass in emergency response — squad overhauled, ${pts} pts banked, ${vsOrg} above the org average. The post-mortem will be a case study.`;
-    if (vsOrg >= 0)
+    if (vsLeague >= 10)
+      return `${firstName}'s Free Hit was a masterclass in emergency response — squad overhauled, ${pts} pts banked, ${vsLeague} above the league average. The post-mortem will be a case study.`;
+    if (vsLeague >= 0)
       return `Free Hit deployed by ${firstName} — a complete squad teardown and rebuild that landed just above average. Neutral energy. Flat P&L. "${team}" remains standing, just about.`;
-    return `${firstName} used the Free Hit, replaced every player in "${team}", and still ended up ${Math.abs(vsOrg)} pts below the org average. This is what a rollback that also breaks prod looks like.`;
+    return `${firstName} used the Free Hit, replaced every player in "${team}", and still ended up ${Math.abs(vsLeague)} pts below the league average. This is what a rollback that also breaks prod looks like.`;
   }
 
   // ── First place ──────────────────────────────────────────────────────────────
@@ -114,70 +115,70 @@ function gwVerdict(
   if (isFirst && vsGlobal >= 10)
     return `GW winner. ${firstName} put up ${pts} pts and beat the global FPL average by ${vsGlobal}. Strong long position on premium assets. Risk-adjusted returns: exceptional. Annual leave: pending.`;
   if (isFirst && climbedBy > 0)
-    return `${firstName} climbed ${climbedBy} place${climbedBy > 1 ? "s" : ""} to lead the org with ${pts} pts. Not flashy — just consistent. "${team}" is a baseload power plant. Unglamorous. Effective.`;
+    return `${firstName} climbed ${climbedBy} place${climbedBy > 1 ? "s" : ""} to lead the league with ${pts} pts. Not flashy — just consistent. "${team}" is the kind of operation that keeps the lights on without anyone noticing.`;
   if (isFirst)
-    return `${firstName} tops the league this week on ${pts} pts. Steady, reliable, unspectacular — the kind of performance that keeps the lights on without anyone noticing.`;
+    return `${firstName} tops the league this week on ${pts} pts. Steady, reliable, unspectacular — exactly the sort of performance that wins championships in March.`;
 
   // ── Last place ───────────────────────────────────────────────────────────────
   if (isLast && vsGlobal <= -20)
     return `${firstName}'s "${team}" scored ${pts} pts — ${Math.abs(vsGlobal)} below the global average. This is a force majeure event. Contractual obligations to the league table have not been met.`;
-  if (isLast && vsOrg <= -15)
-    return `Dead last. ${firstName} delivered ${pts} pts from "${team}", ${Math.abs(vsOrg)} below the org average. Jira ticket raised: "FPL-${pts}: critical regression in squad output. Priority: High."`;
+  if (isLast && vsLeague <= -15)
+    return `Dead last. ${firstName} delivered ${pts} pts from "${team}", ${Math.abs(vsLeague)} below the league average. Jira ticket raised: "FPL-${pts}: critical regression in squad output. Priority: High."`;
   if (isLast && droppedBy > 0)
-    return `${firstName} drops ${droppedBy} place${droppedBy > 1 ? "s" : ""} to finish bottom of the org on ${pts} pts. Gas prices do what they want. Anyone can model it. Sometimes the market just says no.`;
+    return `${firstName} drops ${droppedBy} place${droppedBy > 1 ? "s" : ""} to finish bottom of the league on ${pts} pts. Markets do what they want. Anyone can model it. Sometimes the model just says no.`;
   if (isLast)
     return `${firstName} finishes last this week with ${pts} pts. "${team}" submitted its output and the output was not good. The quarterly review will require some narrative repositioning.`;
 
   // ── Strong positive ──────────────────────────────────────────────────────────
   if (vsGlobal >= 20)
     return `${pts} pts and ${vsGlobal} above the global FPL average. ${firstName}'s "${team}" executed a textbook peak-price trade — the kind of move that gets referenced in standups for weeks.`;
-  if (vsOrg >= 15 && climbedBy > 0)
-    return `${firstName} surged ${climbedBy} place${climbedBy > 1 ? "s" : ""} up the table, ${vsOrg} pts above the org average. "${team}" is running hot. Management has been notified.`;
-  if (vsOrg >= 15)
-    return `${firstName} crushed the org average by ${vsOrg} pts with "${team}" on ${pts}. Either the team selection was inspired or the others were distracted by an energy market spike. Probably both.`;
-  if (vsOrg >= 8 && vsGlobal >= 5 && climbedBy > 0)
-    return `${firstName} climbed ${climbedBy} place${climbedBy > 1 ? "s" : ""} this week — ${pts} pts, above both org and global average. "${team}" is firing on all cylinders. Clean output, no volatility.`;
-  if (vsOrg >= 8 && vsGlobal >= 5)
-    return `Solid green week for ${firstName} — ${pts} pts, above org and global average. "${team}" operated like a well-maintained pipeline: no drama, consistent throughput, exactly as specced.`;
+  if (vsLeague >= 15 && climbedBy > 0)
+    return `${firstName} surged ${climbedBy} place${climbedBy > 1 ? "s" : ""} up the table, ${vsLeague} pts above the league average. "${team}" is running hot. Management has been notified.`;
+  if (vsLeague >= 15)
+    return `${firstName} crushed the league average by ${vsLeague} pts with "${team}" on ${pts}. Either the team selection was inspired or the others were distracted by a market spike. Probably both.`;
+  if (vsLeague >= 8 && vsGlobal >= 5 && climbedBy > 0)
+    return `${firstName} climbed ${climbedBy} place${climbedBy > 1 ? "s" : ""} this week — ${pts} pts, above both league and global average. "${team}" is firing on all cylinders. Clean output, no volatility.`;
+  if (vsLeague >= 8 && vsGlobal >= 5)
+    return `Solid green week for ${firstName} — ${pts} pts, above league and global average. "${team}" operated like a well-maintained pipeline: no drama, consistent throughput, exactly as specced.`;
 
   // ── Moderate positive ────────────────────────────────────────────────────────
-  if (vsOrg >= 5 && climbedBy > 0)
-    return `${firstName} beat the org average by ${vsOrg} pts and climbed ${climbedBy} place${climbedBy > 1 ? "s" : ""}. Not a spectacular trade, but "${team}" is trending in the right direction. P&L: positive.`;
-  if (vsOrg >= 5)
-    return `${firstName}'s "${team}" finished ${vsOrg} pts above the org average on ${pts}. A profitable week — not a headline trade, but stakeholders are adequately managed and no one is filing a complaint.`;
+  if (vsLeague >= 5 && climbedBy > 0)
+    return `${firstName} beat the league average by ${vsLeague} pts and climbed ${climbedBy} place${climbedBy > 1 ? "s" : ""}. Not a spectacular trade, but "${team}" is trending in the right direction. P&L: positive.`;
+  if (vsLeague >= 5)
+    return `${firstName}'s "${team}" finished ${vsLeague} pts above the league average on ${pts}. A profitable week — not a headline trade, but stakeholders are adequately managed and no one is filing a complaint.`;
 
   // ── Around average ───────────────────────────────────────────────────────────
-  if (Math.abs(vsOrg) <= 2 && Math.abs(vsGlobal) <= 2)
-    return `${firstName} landed exactly on both the org and global average with ${pts} pts. "${team}" achieved maximum efficiency and minimum excitement. A textbook enterprise software deployment.`;
-  if (Math.abs(vsOrg) <= 3 && vsGlobal > 0)
-    return `${firstName}'s "${team}" scored ${pts} — right on the org average, slightly above global. Neutral energy, no surprises. The kind of week that neither wins awards nor triggers incident reports.`;
-  if (Math.abs(vsOrg) <= 3)
-    return `${pts} pts for ${firstName} — hovering around the org average. "${team}" is the equivalent of a flat spot in the energy curve: present, accounted for, and generating no headlines.`;
+  if (Math.abs(vsLeague) <= 2 && Math.abs(vsGlobal) <= 2)
+    return `${firstName} landed exactly on both the league and global average with ${pts} pts. "${team}" achieved maximum efficiency and minimum excitement. A textbook enterprise software deployment.`;
+  if (Math.abs(vsLeague) <= 3 && vsGlobal > 0)
+    return `${firstName}'s "${team}" scored ${pts} — right on the league average, slightly above global. Neutral mood, no surprises. The kind of week that neither wins awards nor triggers incident reports.`;
+  if (Math.abs(vsLeague) <= 3)
+    return `${pts} pts for ${firstName} — hovering around the league average. "${team}" is the equivalent of a flat spot in the demand curve: present, accounted for, and generating no headlines.`;
 
   // ── Marginally above ────────────────────────────────────────────────────────
-  if (vsOrg > 0 && vsOrg < 5 && climbedBy > 0)
-    return `${firstName} nudged ${vsOrg} pts above the org average and moved up ${climbedBy} place${climbedBy > 1 ? "s" : ""}. Like a 1% efficiency gain on a gas turbine — technically positive, not worth the press release, but logged.`;
-  if (vsOrg > 0 && vsOrg < 5)
-    return `${firstName}'s "${team}" scraped ${vsOrg} pts above the org average on ${pts}. Marginal upside. The spread is thin but it's still green. The risk desk files this under "acceptable".`;
+  if (vsLeague > 0 && vsLeague < 5 && climbedBy > 0)
+    return `${firstName} nudged ${vsLeague} pts above the league average and moved up ${climbedBy} place${climbedBy > 1 ? "s" : ""}. Like a 1% efficiency gain in a quarterly review — technically positive, not worth the press release, but logged.`;
+  if (vsLeague > 0 && vsLeague < 5)
+    return `${firstName}'s "${team}" scraped ${vsLeague} pts above the league average on ${pts}. Marginal upside. The spread is thin but it's still green. The risk desk files this under "acceptable".`;
 
   // ── Slightly below ───────────────────────────────────────────────────────────
-  if (vsOrg >= -5 && droppedBy > 2)
-    return `${firstName} drops ${droppedBy} places and finishes ${Math.abs(vsOrg)} pts below the org average with ${pts}. A minor negative spread on "${team}". The risk model predicted this. Nobody read the risk model.`;
-  if (vsOrg >= -5 && droppedBy > 0)
-    return `${firstName} slips ${droppedBy} place${droppedBy > 1 ? "s" : ""} to ${rank} with ${pts} pts — just below the org average. A small drawdown on "${team}". Not a crisis, but it'll show up in the monthly report.`;
-  if (vsOrg >= -5)
-    return `${firstName}'s "${team}" finished ${Math.abs(vsOrg)} pts below the org average on ${pts}. A minor negative spread. The logic was sound. The execution was also sound. The market simply disagreed.`;
+  if (vsLeague >= -5 && droppedBy > 2)
+    return `${firstName} drops ${droppedBy} places and finishes ${Math.abs(vsLeague)} pts below the league average with ${pts}. A minor negative spread on "${team}". The risk model predicted this. Nobody read the risk model.`;
+  if (vsLeague >= -5 && droppedBy > 0)
+    return `${firstName} slips ${droppedBy} place${droppedBy > 1 ? "s" : ""} to ${rank} with ${pts} pts — just below the league average. A small drawdown on "${team}". Not a crisis, but it'll show up in the monthly report.`;
+  if (vsLeague >= -5)
+    return `${firstName}'s "${team}" finished ${Math.abs(vsLeague)} pts below the league average on ${pts}. A minor negative spread. The logic was sound. The execution was also sound. The market simply disagreed.`;
 
   // ── Notably below ───────────────────────────────────────────────────────────
-  if (vsOrg >= -10 && droppedBy > 2)
-    return `${firstName} fell ${droppedBy} places with just ${pts} pts from "${team}" — ${Math.abs(vsOrg)} below the org average. A poorly-timed hedge. The position was opened with conviction and closed with regret.`;
-  if (vsOrg >= -10)
-    return `${firstName}'s "${team}" is ${Math.abs(vsOrg)} pts below the org average this week on ${pts}. The energy equivalent of buying gas at peak price and selling at baseload. The trade thesis needs revisiting.`;
+  if (vsLeague >= -10 && droppedBy > 2)
+    return `${firstName} fell ${droppedBy} places with just ${pts} pts from "${team}" — ${Math.abs(vsLeague)} below the league average. A poorly-timed hedge. The position was opened with conviction and closed with regret.`;
+  if (vsLeague >= -10)
+    return `${firstName}'s "${team}" is ${Math.abs(vsLeague)} pts below the league average this week on ${pts}. The financial equivalent of buying high and selling low. The trade thesis needs revisiting.`;
 
   // ── Significant drop ─────────────────────────────────────────────────────────
   if (droppedBy > 2)
-    return `${firstName} loses ${droppedBy} places this week, "${team}" delivering just ${pts} pts — ${Math.abs(vsOrg)} below the org average. A sharp drawdown. Stop-loss not triggered. It should have been.`;
-  return `${firstName}'s "${team}" posted ${pts} pts — ${Math.abs(vsOrg)} below the org average. The quarterly forecast will need adjusting. The FPL desk formally requests a root-cause analysis by Monday.`;
+    return `${firstName} loses ${droppedBy} places this week, "${team}" delivering just ${pts} pts — ${Math.abs(vsLeague)} below the league average. A sharp drawdown. Stop-loss not triggered. It should have been.`;
+  return `${firstName}'s "${team}" posted ${pts} pts — ${Math.abs(vsLeague)} below the league average. The quarterly forecast will need adjusting. The FPL desk formally requests a root-cause analysis by Monday.`;
 }
 
 // ── Data types ────────────────────────────────────────────────────────────────
@@ -195,7 +196,7 @@ interface StandingsData {
     chipUsed: string | null;
     pointsBehindLeader: number;
   }[];
-  orgAverageGwPoints: number;
+  leagueAverageGwPoints: number;
   globalAverageGwPoints: number;
 }
 
@@ -203,10 +204,10 @@ interface GameweeksData {
   currentGameweek: number;
 }
 
-interface OrgData {
-  name: string;
-  miniLeagueId: number | null;
-  members: { id: number; displayName: string }[];
+interface ApiEnvelope<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
 }
 
 function RankBadge({ rank }: { rank: number }) {
@@ -237,6 +238,7 @@ function greeting(displayName: string): string {
 }
 
 export function LandingPage() {
+  const { league } = useLeague();
   const [quoteIdx, setQuoteIdx] = useState(() => Math.floor(Math.random() * QUOTES.length));
   const [reportOpen, setReportOpen] = useState(false);
   const [aiVerdicts, setAiVerdicts] = useState<Record<number, string>>({});
@@ -269,33 +271,28 @@ export function LandingPage() {
   });
 
   const { data: gwData } = useQuery<GameweeksData>({
-    queryKey: ["gameweeks"],
-    queryFn: () => fetch("/api/gameweeks").then((r) => r.json()),
+    queryKey: ["gameweeks", league.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${league.id}/gameweeks`);
+      const body = (await res.json()) as ApiEnvelope<GameweeksData>;
+      if (!res.ok || !body.success || !body.data) throw new Error(body.error ?? "Gameweeks failed");
+      return body.data;
+    },
     staleTime: 300_000,
-  });
-
-  const { data: orgData } = useQuery<OrgData, { code?: string }>({
-    queryKey: ["org"],
-    queryFn: () =>
-      fetch("/api/org").then(async (r) => {
-        const json = await r.json();
-        if (!r.ok) throw json;
-        return json;
-      }),
-    staleTime: 300_000,
-    retry: false,
   });
 
   const currentGw = gwData?.currentGameweek;
 
-  const { data: standingsData, isLoading: standingsLoading } = useQuery<StandingsData, { code?: string }>({
-    queryKey: ["standings", currentGw],
-    queryFn: () =>
-      fetch(`/api/standings${currentGw ? `?gw=${currentGw}` : ""}`).then(async (r) => {
-        const json = await r.json();
-        if (!r.ok) throw json;
-        return json;
-      }),
+  const { data: standingsData, isLoading: standingsLoading } = useQuery<StandingsData>({
+    queryKey: ["standings", league.id, currentGw],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/leagues/${league.id}/standings${currentGw ? `?gw=${currentGw}` : ""}`,
+      );
+      const body = (await res.json()) as ApiEnvelope<StandingsData>;
+      if (!res.ok || !body.success || !body.data) throw new Error(body.error ?? "Standings failed");
+      return body.data;
+    },
     enabled: currentGw !== undefined,
     staleTime: 60_000,
     retry: false,
@@ -350,7 +347,7 @@ export function LandingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           gameweekId: standingsData.gameweekId,
-          orgAverageGwPoints: standingsData.orgAverageGwPoints,
+          leagueAverageGwPoints: standingsData.leagueAverageGwPoints,
           globalAverageGwPoints: standingsData.globalAverageGwPoints,
           managers: gwRanked.map((e) => ({
             managerId: e.managerId,
@@ -391,12 +388,12 @@ export function LandingPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-900">
-          {meData ? greeting(meData.displayName) : (orgData?.name ?? "Dashboard")}
+          {meData ? greeting(meData.displayName) : league.name}
         </h1>
         <p className="text-sm text-slate-400 mt-0.5">
           {meData
-            ? `${meData.teamName}${currentGw ? ` · GW${currentGw}` : ""} · ${orgData?.name ?? ""}`
-            : `${currentGw ? `Gameweek ${currentGw} · ` : ""}FPL Organisation Overview`}
+            ? `${meData.teamName}${currentGw ? ` · GW${currentGw}` : ""} · ${league.name}`
+            : `${currentGw ? `Gameweek ${currentGw} · ` : ""}${league.name} overview`}
         </p>
       </div>
 
@@ -421,9 +418,9 @@ export function LandingPage() {
               <span className="text-xs text-slate-400 mt-0.5">pts</span>
             </div>
 
-            {/* Org rank */}
+            {/* League rank */}
             <div className="flex flex-col">
-              <span className="text-xs text-slate-400 font-medium mb-0.5">Org Rank</span>
+              <span className="text-xs text-slate-400 font-medium mb-0.5">League Rank</span>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-3xl font-extrabold text-slate-900 leading-none">
                   {myStanding?.rank ?? "—"}
@@ -489,7 +486,7 @@ export function LandingPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <StatCard label="Gameweek" value={`GW ${standingsData.gameweekId}`} />
           <StatCard label="Leader" value={leader?.displayName ?? "—"} sub={leader ? `${leader.totalPoints} pts` : undefined} highlight />
-          <StatCard label="Org Average" value={`${standingsData.orgAverageGwPoints} pts`} sub="this GW" />
+          <StatCard label="League Average" value={`${standingsData.leagueAverageGwPoints} pts`} sub="this GW" />
           <StatCard label="FPL Average" value={`${standingsData.globalAverageGwPoints} pts`} sub="this GW" />
         </div>
       )}
@@ -525,7 +522,7 @@ export function LandingPage() {
         <div className="bg-white border border-slate-200/80 rounded-xl overflow-hidden shadow-card">
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
             <h2 className="text-sm font-semibold text-slate-700">Top 5 Standings</h2>
-            <Link href="/standings" className="text-xs text-violet-600 hover:text-violet-700 font-medium">
+            <Link href={`/l/${league.slug}/standings`} className="text-xs text-violet-600 hover:text-violet-700 font-medium">
               View all →
             </Link>
           </div>
@@ -545,8 +542,8 @@ export function LandingPage() {
           {!standingsLoading && top5.length === 0 && (
             <div className="py-10 text-center text-sm text-slate-400">
               No data yet.{" "}
-              <Link href="/admin" className="underline text-violet-600 hover:text-violet-700">
-                Configure your org
+              <Link href={`/l/${league.slug}/admin/settings`} className="underline text-violet-600 hover:text-violet-700">
+                Configure your league
               </Link>{" "}
               to get started.
             </div>
@@ -562,7 +559,7 @@ export function LandingPage() {
             const renderRow = (entry: typeof top5[0], isMe: boolean) => (
               <li key={entry.managerId}>
                 <Link
-                  href={`/members/${entry.managerId}`}
+                  href={`/l/${league.slug}/members/${entry.managerId}`}
                   className={`flex items-center gap-3 px-4 py-2.5 transition-colors duration-100 ${
                     isMe
                       ? "bg-[#37003c]/5 border-l-2 border-[#37003c] hover:bg-[#37003c]/10"
@@ -609,10 +606,10 @@ export function LandingPage() {
         <div className="space-y-3">
           <h2 className="text-sm font-semibold text-slate-700">Quick Access</h2>
           <div className="grid grid-cols-1 gap-2">
-            <QuickLink href="/standings" icon={<TrophyIcon />} label="Standings" desc="Full gameweek & season table" />
-            <QuickLink href="/ownership" icon={<UsersIcon />} label="Ownership" desc="Who owns what in your org" />
+            <QuickLink href={`/l/${league.slug}/standings`} icon={<TrophyIcon />} label="Standings" desc="Full gameweek & season table" />
+            <QuickLink href={`/l/${league.slug}/ownership`} icon={<UsersIcon />} label="Ownership" desc="Who owns what across the league" />
             <QuickLink href="/fixtures" icon={<CalendarIcon />} label="Fixtures" desc="Upcoming FPL fixtures & difficulty" />
-            <QuickLink href="/admin" icon={<SettingsIcon />} label="Admin" desc="Configure org, sync members" />
+            <QuickLink href={`/l/${league.slug}/admin/settings`} icon={<SettingsIcon />} label="Admin" desc="Configure the league, sync members" />
           </div>
         </div>
       </div>
@@ -666,10 +663,10 @@ export function LandingPage() {
                     const gwRank = gwRanked.findIndex((e) => e.managerId === entry.managerId) + 1;
                     const isMe = entry.managerId === myManagerId;
                     const verdict = aiVerdicts[entry.managerId]
-                      ?? gwVerdict(entry, gwRank, gwRanked.length, standingsData.orgAverageGwPoints, standingsData.globalAverageGwPoints);
-                    const vsOrg = entry.gameweekPoints - standingsData.orgAverageGwPoints;
-                    const isUp = vsOrg > 3;
-                    const isDown = vsOrg < -3;
+                      ?? gwVerdict(entry, gwRank, gwRanked.length, standingsData.leagueAverageGwPoints, standingsData.globalAverageGwPoints);
+                    const vsLeague = entry.gameweekPoints - standingsData.leagueAverageGwPoints;
+                    const isUp = vsLeague > 3;
+                    const isDown = vsLeague < -3;
                     return (
                       <li
                         key={entry.managerId}
@@ -699,8 +696,8 @@ export function LandingPage() {
                             {entry.gameweekPoints}
                           </span>
                           <span className="text-xs text-slate-400 ml-0.5">pts</span>
-                          <p className={`text-[11px] mt-0.5 tabular-nums ${vsOrg > 0 ? "text-emerald-500" : vsOrg < 0 ? "text-red-400" : "text-slate-400"}`}>
-                            {vsOrg > 0 ? "+" : ""}{vsOrg} vs org
+                          <p className={`text-[11px] mt-0.5 tabular-nums ${vsLeague > 0 ? "text-emerald-500" : vsLeague < 0 ? "text-red-400" : "text-slate-400"}`}>
+                            {vsLeague > 0 ? "+" : ""}{vsLeague} vs league
                           </p>
                         </div>
                       </li>
@@ -712,7 +709,7 @@ export function LandingPage() {
           })()}
           {reportOpen && (
             <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50/60 text-xs text-slate-400">
-              Org avg: <strong className="text-slate-600">{standingsData.orgAverageGwPoints} pts</strong>
+              League avg: <strong className="text-slate-600">{standingsData.leagueAverageGwPoints} pts</strong>
               <span className="mx-2">·</span>
               FPL avg: <strong className="text-slate-600">{standingsData.globalAverageGwPoints} pts</strong>
             </div>

@@ -14,7 +14,7 @@ interface ManagerInput {
 
 interface ReportRequest {
   gameweekId: number;
-  orgAverageGwPoints: number;
+  leagueAverageGwPoints: number;
   globalAverageGwPoints: number;
   managers: ManagerInput[];
 }
@@ -32,25 +32,25 @@ export async function POST(req: NextRequest) {
   }
 
   const body = (await req.json()) as ReportRequest;
-  const { gameweekId, orgAverageGwPoints, globalAverageGwPoints, managers } = body;
+  const { gameweekId, leagueAverageGwPoints, globalAverageGwPoints, managers } = body;
 
   const managerLines = managers
     .map((m, i) => {
-      const vsOrg = m.gameweekPoints - orgAverageGwPoints;
+      const vsLeague = m.gameweekPoints - leagueAverageGwPoints;
       const vsGlobal = m.gameweekPoints - globalAverageGwPoints;
       const chip = m.chipUsed ? (CHIP_LABELS[m.chipUsed] ?? m.chipUsed) : null;
       const rankStr =
         m.rankChange > 0 ? `moved up ${m.rankChange} place(s)`
         : m.rankChange < 0 ? `dropped ${Math.abs(m.rankChange)} place(s)`
         : "stayed the same position";
-      return `${i + 1}. [managerId:${m.managerId}] ${m.displayName} (team: "${m.teamName}") — ${m.gameweekPoints} pts, ${vsOrg >= 0 ? "+" : ""}${vsOrg} vs org avg, ${vsGlobal >= 0 ? "+" : ""}${vsGlobal} vs global avg, ${rankStr} in the table${chip ? `, played ${chip}` : ""}`;
+      return `${i + 1}. [managerId:${m.managerId}] ${m.displayName} (team: "${m.teamName}") — ${m.gameweekPoints} pts, ${vsLeague >= 0 ? "+" : ""}${vsLeague} vs league avg, ${vsGlobal >= 0 ? "+" : ""}${vsGlobal} vs global avg, ${rankStr} in the table${chip ? `, played ${chip}` : ""}`;
     })
     .join("\n");
 
   const prompt = `You are writing the internal GW${gameweekId} FPL Performance Report for a private fantasy football mini-league. All the managers listed below are members of this league.
 
 Context:
-- League average this GW: ${orgAverageGwPoints} pts
+- League average this GW: ${leagueAverageGwPoints} pts
 - Global FPL average this GW: ${globalAverageGwPoints} pts
 
 Managers (ranked by GW points, best first):

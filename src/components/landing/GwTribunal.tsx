@@ -30,7 +30,7 @@ interface StandingsEntry {
 
 interface StandingsData {
   gameweekId: number;
-  orgAverageGwPoints: number;
+  leagueAverageGwPoints: number;
   standings: StandingsEntry[];
 }
 
@@ -99,7 +99,7 @@ export function GwTribunal({
         managerName: bottom.displayName,
         teamName:    bottom.teamName,
         gwScore:     bottom.gameweekPoints,
-        orgAvg:      standingsData.orgAverageGwPoints,
+        leagueAvg:   standingsData.leagueAverageGwPoints,
         rankChange:  bottom.rankChange,
         chipUsed:    bottom.chipUsed ? CHIP_LABELS[bottom.chipUsed] ?? bottom.chipUsed : null,
       }),
