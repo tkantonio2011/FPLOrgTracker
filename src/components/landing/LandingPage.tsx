@@ -261,9 +261,22 @@ export function LandingPage() {
     captainName: string | null;
     captainPts: number;
     chipUsed: string | null;
-  }>({
-    queryKey: ["me-gw-stats"],
-    queryFn: () => fetch("/api/me/gw-stats").then((r) => r.ok ? r.json() : null),
+  } | null>({
+    queryKey: ["me-gw-stats", league.id],
+    queryFn: async () => {
+      const r = await fetch(`/api/leagues/${league.id}/me/gw-stats`);
+      if (!r.ok) return null;
+      const body = (await r.json()) as ApiEnvelope<{
+        gameweekId: number;
+        gwScore: number;
+        totalPoints: number;
+        benchPts: number;
+        captainName: string | null;
+        captainPts: number;
+        chipUsed: string | null;
+      }>;
+      return body.success && body.data ? body.data : null;
+    },
     enabled: !!meData,
     staleTime: 60_000,
     refetchInterval: 60_000,

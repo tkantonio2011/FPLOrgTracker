@@ -226,8 +226,9 @@ $SSH "$EC2_USER@$EC2_HOST" bash << REMOTE
 
   # Write a pm2 ecosystem config that hard-codes DATABASE_URL so it is always
   # set correctly in the Node.js process regardless of env-file loading order.
-  # Next.js will load ADMIN_PIN / SESSION_SECRET / etc. from .env.local at
-  # startup; DATABASE_URL is already in process.env so dotenv won't override it.
+  # Next.js will load SESSION_SECRET / SMTP_* / BOOTSTRAP_* / etc. from
+  # .env.local at startup; DATABASE_URL is already in process.env so dotenv
+  # won't override it.
   cat > "$APP_DIR/ecosystem.config.js" << 'ECOEOF'
 module.exports = {
   apps: [{

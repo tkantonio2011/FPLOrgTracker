@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchBootstrap, fetchFixtures } from "@/lib/fpl/client";
 import type { FplFixture } from "@/lib/fpl/types";
-import { requireAnySession } from "@/lib/authz/session-or-legacy";
+import { requireSession } from "@/lib/authz/league-scope";
 import { NotSignedInError } from "@/lib/authz/errors";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 export async function GET(req: NextRequest) {
   try {
     try {
-      await requireAnySession(req);
+      await requireSession(req);
     } catch (err) {
       if (err instanceof NotSignedInError) {
         return NextResponse.json({ error: "Not signed in" }, { status: 401 });
