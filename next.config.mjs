@@ -2,6 +2,10 @@
 const nextConfig = {
   experimental: {
     typedRoutes: false,
+    // Enable `src/instrumentation.ts` — required so the BOOTSTRAP_SUPER_ADMIN_EMAIL
+    // provisioning runs at server startup. In Next.js 15 this becomes the default
+    // and the flag can be removed.
+    instrumentationHook: true,
   },
   // Standalone output bundles only production deps and creates a minimal server.js
   // Required by scripts/deploy.sh for clean EC2 deployment.
