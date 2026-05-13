@@ -38,22 +38,30 @@ const patchSchema = z
   })
   .refine((v) => Object.keys(v).length > 0, { message: "Empty update" });
 
-async function loadMembership(leagueId: string, membershipId: string) {
-  return db.leagueMembership.findFirst({
-    where: { id: membershipId, leagueId },
+/**
+ * URL identifies the membership by its FPL `managerId` within the league —
+ * this matches the rest of `/api/leagues/[leagueId]/members/[managerId]/*`
+ * (performance, squad, narrative). The (leagueId, managerId) pair is unique
+ * in the schema.
+ */
+async function loadMembership(leagueId: string, managerIdRaw: string) {
+  const managerId = Number(managerIdRaw);
+  if (!Number.isFinite(managerId) || managerId <= 0) return null;
+  return db.leagueMembership.findUnique({
+    where: { leagueId_managerId: { leagueId, managerId } },
     include: { userAccount: { select: { id: true, email: true } } },
   });
 }
 
 export async function PATCH(
   req: NextRequest,
-  ctx: { params: { leagueId: string; membershipId: string } },
+  ctx: { params: { leagueId: string; managerId: string } },
 ) {
   try {
     const { league, user } = await requireLeagueAdmin(req, ctx.params.leagueId);
     const body = await parseBody(req, patchSchema);
 
-    const membership = await loadMembership(league.id, ctx.params.membershipId);
+    const membership = await loadMembership(league.id, ctx.params.managerId);
     if (!membership) return fail("Membership not found", 404);
 
     // Last-admin guard: demote or deactivate of the only admin → 409.
@@ -147,7 +155,7 @@ export async function PATCH(
       });
     }
 
-    const fresh = await loadMembership(league.id, membership.id);
+    const fresh = await loadMembership(league.id, String(membership.managerId));
     return ok({
       id: fresh!.id,
       managerId: fresh!.managerId,
@@ -168,11 +176,11 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  ctx: { params: { leagueId: string; membershipId: string } },
+  ctx: { params: { leagueId: string; managerId: string } },
 ) {
   try {
     const { league, user } = await requireLeagueAdmin(req, ctx.params.leagueId);
-    const membership = await loadMembership(league.id, ctx.params.membershipId);
+    const membership = await loadMembership(league.id, ctx.params.managerId);
     if (!membership) return fail("Membership not found", 404);
 
     if (membership.role === "admin" && membership.isActive) {

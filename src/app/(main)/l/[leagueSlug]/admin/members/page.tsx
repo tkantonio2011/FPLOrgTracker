@@ -243,7 +243,7 @@ function EditMemberPanel({
 
   const patchMutation = useMutation({
     mutationFn: async (patch: Record<string, unknown>) => {
-      const res = await fetch(`/api/leagues/${leagueId}/members/${member.id}`, {
+      const res = await fetch(`/api/leagues/${leagueId}/members/${member.managerId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(patch),
@@ -262,7 +262,7 @@ function EditMemberPanel({
 
   const removeMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/leagues/${leagueId}/members/${member.id}`, {
+      const res = await fetch(`/api/leagues/${leagueId}/members/${member.managerId}`, {
         method: "DELETE",
       });
       const body = (await res.json()) as { success: boolean; error?: string };
