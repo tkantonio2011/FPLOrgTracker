@@ -10,7 +10,9 @@ export const runtime = "nodejs";
 
 const bodySchema = z.object({
   email: z.string().trim().toLowerCase().email(),
-  redirectTo: z.string().optional(),
+  // Accept missing / null / string — the sign-in form sends `null` when there
+  // is no `?redirect=` query param. `safeRedirect()` below normalises further.
+  redirectTo: z.string().nullable().optional(),
 });
 
 function clientIp(req: NextRequest): string | null {
@@ -19,7 +21,7 @@ function clientIp(req: NextRequest): string | null {
   return req.headers.get("x-real-ip");
 }
 
-function safeRedirect(input: string | undefined): string {
+function safeRedirect(input: string | null | undefined): string {
   // Only allow same-origin paths starting with "/" and not "//" (protocol-relative).
   if (!input) return "/";
   if (!input.startsWith("/")) return "/";
