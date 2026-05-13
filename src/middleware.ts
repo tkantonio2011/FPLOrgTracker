@@ -46,6 +46,10 @@ const LEGACY_REDIRECT_PATTERNS = [
   "/members",
   "/suggestions",
   "/wall-of-shame",
+  // The legacy single-tenant admin page is gone. League Admins land at
+  // /l/{slug}/admin/*; Super Admins land at /platform. The /leagues page
+  // distinguishes them.
+  "/admin",
 ];
 
 function isPublic(pathname: string): boolean {
