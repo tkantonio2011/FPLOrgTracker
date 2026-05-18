@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import { mapAdminPath } from "@/lib/routing/admin-path-mapper";
 
 interface MeMembership {
   leagueId: string;
@@ -23,6 +25,7 @@ interface Props {
 
 export function LeagueSwitcher({ currentLeagueSlug, currentLeagueName }: Props) {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname() ?? "";
 
   const { data } = useQuery<MeResponse | null>({
     queryKey: ["me-leagues"],
@@ -74,7 +77,7 @@ export function LeagueSwitcher({ currentLeagueSlug, currentLeagueName }: Props) 
             {others.map((m) => (
               <Link
                 key={m.leagueSlug}
-                href={`/l/${m.leagueSlug}/standings`}
+                href={mapAdminPath(pathname, m.leagueSlug, m.role)}
                 className="block px-3 py-2 text-sm text-slate-900 hover:bg-slate-100"
                 onClick={() => setOpen(false)}
               >

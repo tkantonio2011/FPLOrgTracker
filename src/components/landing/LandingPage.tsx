@@ -239,7 +239,13 @@ function greeting(displayName: string): string {
 
 export function LandingPage() {
   const { league } = useLeague();
-  const [quoteIdx, setQuoteIdx] = useState(() => Math.floor(Math.random() * QUOTES.length));
+  // Initialise deterministically so SSR and the client's first render produce
+  // the same HTML, then randomise on mount. `Math.random()` in a useState
+  // initialiser runs in both environments and would cause a hydration mismatch.
+  const [quoteIdx, setQuoteIdx] = useState(0);
+  useEffect(() => {
+    setQuoteIdx(Math.floor(Math.random() * QUOTES.length));
+  }, []);
   const [reportOpen, setReportOpen] = useState(false);
   const [aiVerdicts, setAiVerdicts] = useState<Record<number, string>>({});
   const [aiLoading, setAiLoading] = useState(false);
@@ -303,7 +309,14 @@ export function LandingPage() {
         `/api/leagues/${league.id}/standings${currentGw ? `?gw=${currentGw}` : ""}`,
       );
       const body = (await res.json()) as ApiEnvelope<StandingsData>;
-      if (!res.ok || !body.success || !body.data) throw new Error(body.error ?? "Standings failed");
+      if (
+        !res.ok ||
+        !body.success ||
+        !body.data ||
+        !Array.isArray(body.data.standings)
+      ) {
+        throw new Error(body.error ?? "Standings failed");
+      }
       return body.data;
     },
     enabled: currentGw !== undefined,
@@ -318,14 +331,14 @@ export function LandingPage() {
       return next;
     });
 
-  const top5 = standingsData?.standings.slice(0, 5) ?? [];
-  const leader = standingsData?.standings[0];
+  const top5 = standingsData?.standings?.slice(0, 5) ?? [];
+  const leader = standingsData?.standings?.[0];
   const myStanding = meData
-    ? standingsData?.standings.find((s) => s.managerId === meData.managerId)
+    ? standingsData?.standings?.find((s) => s.managerId === meData.managerId)
     : undefined;
 
   // Sort by GW points descending for the performance report
-  const gwRanked = standingsData
+  const gwRanked = standingsData?.standings
     ? [...standingsData.standings].sort((a, b) => b.gameweekPoints - a.gameweekPoints)
     : [];
 
@@ -452,7 +465,7 @@ export function LandingPage() {
                   </span>
                 )}
               </div>
-              <span className="text-xs text-slate-400 mt-0.5">of {standingsData?.standings.length ?? "—"}</span>
+              <span className="text-xs text-slate-400 mt-0.5">of {standingsData?.standings?.length ?? "—"}</span>
             </div>
 
             {/* Captain */}
@@ -519,17 +532,17 @@ export function LandingPage() {
       <WeeklyHighlights />
 
       {/* Pre-GW Horoscope */}
-      {standingsData && standingsData.standings.length > 0 && (
+      {standingsData?.standings && standingsData.standings.length > 0 && (
         <GwHoroscope standingsData={standingsData} currentManagerId={meData?.managerId} />
       )}
 
       {/* Post-GW Tribunal */}
-      {standingsData && standingsData.standings.length > 0 && (
+      {standingsData?.standings && standingsData.standings.length > 0 && (
         <GwTribunal standingsData={standingsData} />
       )}
 
       {/* GW Punishment */}
-      {standingsData && standingsData.standings.length > 0 && (() => {
+      {standingsData?.standings && standingsData.standings.length > 0 && (() => {
         const bottom = [...standingsData.standings].sort(
           (a, b) => a.gameweekPoints - b.gameweekPoints
         )[0];
@@ -574,7 +587,7 @@ export function LandingPage() {
             const myManagerId = meData?.managerId;
             const myInTop5 = top5.some((e) => e.managerId === myManagerId);
             const myRowEntry = !myInTop5 && myManagerId
-              ? standingsData?.standings.find((e) => e.managerId === myManagerId)
+              ? standingsData?.standings?.find((e) => e.managerId === myManagerId)
               : undefined;
 
             const renderRow = (entry: typeof top5[0], isMe: boolean) => (

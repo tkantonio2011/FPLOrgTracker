@@ -255,3 +255,94 @@ If a future maintainer wants to migrate to a library, the `lib/auth/*` boundary 
 None of the spec's `[NEEDS CLARIFICATION]` markers remain. All decisions above resolve them or are downstream of the user's Option A choice.
 
 A minor item the implementer should keep in mind: SQLite's default journal mode in production should be `WAL` to reduce write-lock contention as the multi-league workload increases. Configurable via Prisma's `relationMode` and a one-time `PRAGMA journal_mode = WAL;`. Tracked as an implementation note, not a spec ambiguity.
+
+---
+
+# Research Addendum — Multi-League Admin UX Delta (2026-05-13)
+
+This addendum covers a focused UX delta layered on top of the shipped 002 work. The capability "an admin manages more than one league" is already permitted by FR-014 and supported by the data model and authorisation layer; this addendum addresses only the navigation surface.
+
+## Topic A: Where does an admin's "multi-league home" live?
+
+**Decision**: Add a new top-level Server Component page at `/my-admin`. Not nested under `/l/[leagueSlug]/` (it spans leagues) and not nested under `/platform` (that route is Super-Admin only and the feature must work for ordinary League Admins).
+
+**Rationale**:
+- The URL must be reachable without a `[leagueSlug]` segment — there is no canonical "current league" in this view.
+- `/platform` is gated by `requireSuperAdmin`; a plain League Admin who admins two leagues is not a Super Admin and must not be redirected there.
+- The existing `/leagues` chooser is the right "I'm picking a destination" page; `/my-admin` is the "I want to act on every league I admin without picking first" page. Conceptually different.
+
+**Alternatives considered**:
+- *Reuse `/leagues` with an admin-section* — rejected because `/leagues` is the chooser for plain navigation and gets hit even by single-league members; loading per-league admin links into it on every visit is wasteful and visually noisy for the common case.
+- *Put the admin home inside `/l/[firstAdminLeague]/admin/leagues`* — rejected because the choice of "first" is arbitrary and the URL implies a parent that doesn't really own the view.
+
+## Topic B: Context-preserving switching across admin sub-paths
+
+**Decision**: Introduce a pure routing helper `mapAdminPath(currentPath, targetLeagueSlug, targetRole) → string` and route the LeagueSwitcher through it. When `currentPath` matches `/l/<source>/admin/<sub>` AND `targetRole === 'admin'`, the helper returns `/l/<target>/admin/<sub>`. Otherwise it returns `/l/<target>/standings` (the existing default).
+
+**Rationale**:
+- Pure function → table-driven tests, no React-runtime coupling.
+- Synchronous → no extra `/api/auth/me` round-trip on dropdown open; the LeagueSwitcher already has the user's full memberships list and roles.
+- Targeted scope: only the `/admin/<sub>` case is special. Every other top-level page (`standings`, `live`, `ownership`, etc.) is a Member surface and the existing "go to standings" default is correct.
+
+**Alternatives considered**:
+- *Always try to land on the same sub-path regardless of role* (e.g., land on `/l/B/admin/settings` even if user is only a member of B) — rejected: would 403 on render. The helper must consult the *target* role.
+- *Server-side redirect handler* — rejected: switching is a client-side action; round-tripping through the server for path mapping is unjustified latency.
+
+## Topic C: How should `/leagues` chooser surface the admin/member split?
+
+**Decision**: When the user has at least one admin membership AND at least one non-admin membership, render two stacked groups: "Leagues you administer" (each row shows inline deep links to the league's admin sub-shell) followed by "Leagues you're a member of" (each row links to `/standings` as today). Single-group users (all-admin or all-member) see a single list — no degenerate empty section.
+
+**Rationale**:
+- The split is meaningful only when both sides exist. Forcing the split for an all-admin user adds noise.
+- Inline deep links from the admin list to `/admin/settings` / `/admin/members` save a click for the most common follow-up action.
+- The Super Admin "Platform admin →" footer remains unchanged from T037.
+
+**Alternatives considered**:
+- *Filter chips ("All / Admin / Member")* — rejected as overkill for a list that has at most ~10 rows.
+- *Tooltip-on-hover for admin deep links* — rejected: not discoverable on touch devices.
+
+## Topic D: Do we need a new API endpoint?
+
+**Decision**: **No.** `GET /api/auth/me` already returns `memberships[]` with `leagueId`, `leagueSlug`, `leagueName`, `role`, and `isActive` (see `src/app/api/auth/me/route.ts`, refactored by T032). `/my-admin` is a Server Component that calls `getServerUserFromCookie(token)` directly — no fetch round-trip needed.
+
+**Rationale**:
+- Adding an endpoint to slice the same data the client already has would duplicate logic and create a second authorisation surface to gate.
+- Server-side derivation keeps `/my-admin` consistent with the existing `/leagues` page (also a Server Component).
+
+**Alternatives considered**:
+- *Add `GET /api/me/admin-leagues`* — rejected as redundant. Reconsider when (and only when) we ship the option-2/3 cross-league dashboard widgets deferred per the user's scope choice.
+
+## Topic E: Sidebar surface for multi-league admins
+
+**Decision**: When the sidebar renders inside a league shell AND the current user holds admin role on 2+ active leagues, show a single extra "My admin leagues" link near the existing per-league "Admin" entry. Suppress the link for single-league admins (the existing per-league "Admin" entry already covers their need).
+
+**Rationale**:
+- Keeps the sidebar uncluttered for the majority of users.
+- The signal "I admin multiple leagues" comes from the same `memberships[]` already fetched by `LeagueSwitcher`; no extra cost.
+- Placement near the existing "Admin" entry preserves spatial intuition — admin-y things stay together.
+
+**Alternatives considered**:
+- *Always show the link, with a "(N)" badge* — rejected: clutter for single-league users who form the majority.
+- *Move into the LeagueSwitcher dropdown only* — rejected: discoverability suffers when navigating inside `/l/A/admin/members` and wanting to leap directly to the multi-admin home.
+
+## Topic F: Suspended leagues in the admin list
+
+**Decision**: A suspended league where the user holds admin role is shown in `/my-admin` and `/leagues` with a clear "Suspended" chip and a muted style. Deep links to `/admin/<sub>` are *disabled* (rendered as a non-link span with a tooltip). The only enabled link is back into the league's main shell at `/l/<slug>/`, which already renders the suspended page from `[leagueSlug]/layout.tsx`.
+
+**Rationale**:
+- Hiding suspended leagues entirely would let a user "lose" a league they still administer, contradicting FR-022's "data MUST be preserved".
+- Disabling admin deep-links matches existing route-level behaviour: `requireLeagueAdmin` throws `LeagueSuspendedError` for non-Super-Admins on suspended leagues, so an enabled link would produce a confusing error.
+
+**Alternatives considered**:
+- *Show suspended leagues with full admin links and let the route gate fail* — rejected: poor UX, looks like a broken link.
+
+## Topic G: Super Admin overlap
+
+**Decision**: `/my-admin` only lists leagues where the current user has an explicit `LeagueMembership.role === 'admin'` row. Super Admin status alone does NOT populate the list, even though `requireLeagueAdmin` honours the Super Admin bypass. The Super Admin's own surface is `/platform`, which already provides a richer cross-league dashboard.
+
+**Rationale**:
+- Mixing the two would muddy the conceptual distinction between "leagues I admin as a participant" (League Admin role) and "leagues I oversee as platform operator" (Super Admin role).
+- A Super Admin who happens to hold a League Admin row on one specific league will see that league listed (correctly) on `/my-admin` and still see all leagues via `/platform`.
+
+**Alternatives considered**:
+- *Include all leagues for Super Admins on `/my-admin`* — rejected: duplicates `/platform`'s job and risks Super Admins doing platform-scope work from a weaker UI.

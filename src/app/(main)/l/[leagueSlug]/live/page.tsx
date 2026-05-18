@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLeague } from "@/components/league/LeagueProvider";
+import { useFreshnessGate } from "@/lib/hooks/useFreshnessGate";
 
 const CHIP_LABELS: Record<string, string> = {
   bboost: "BB",
@@ -53,7 +54,7 @@ export default function LivePage() {
   const [countdown, setCountdown] = useState(REFRESH_INTERVAL);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const { data, isLoading, isError, dataUpdatedAt } = useQuery<LiveResponse>({
+  const liveQuery = useQuery<LiveResponse>({
     queryKey: ["live", league.id],
     queryFn: async () => {
       const r = await fetch(`/api/leagues/${league.id}/live`);
@@ -66,6 +67,15 @@ export default function LivePage() {
       const data = query.state.data as LiveResponse | undefined;
       return data?.isLive ? REFRESH_INTERVAL * 1000 : false;
     },
+    // Live numbers shift fast — always refetch on revisit, and hide stale
+    // cache behind the skeleton when it's more than one refresh-cycle old.
+    refetchOnMount: "always",
+  });
+  const { data, isError, dataUpdatedAt } = liveQuery;
+  // The existing "Updated HH:MM:SS" + "Refreshing in Xs" header already plays
+  // the role of the RefreshingPill, so we only consume `showSkeleton` here.
+  const { showSkeleton } = useFreshnessGate(liveQuery, {
+    staleAfterMs: (REFRESH_INTERVAL + 30) * 1000,
   });
 
   useEffect(() => {
@@ -114,7 +124,7 @@ export default function LivePage() {
         </div>
       </div>
 
-      {isLoading && (
+      {showSkeleton && (
         <div className="bg-white border border-slate-200/80 rounded-xl overflow-hidden shadow-card animate-pulse">
           <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/60 h-10" />
           <div className="divide-y divide-slate-50">
@@ -137,13 +147,13 @@ export default function LivePage() {
         </div>
       )}
 
-      {data && !data.isLive && !data.isFinished && (
+      {data && !showSkeleton && !data.isLive && !data.isFinished && (
         <div className="bg-amber-50 border border-amber-200/80 text-amber-800 px-4 py-3 rounded-xl text-sm shadow-card">
           {data.gameweekName} hasn&apos;t kicked off yet. Scores will update automatically once matches begin.
         </div>
       )}
 
-      {data && data.managers.length > 0 && (
+      {data && !showSkeleton && data.managers.length > 0 && (
         <div className="bg-white border border-slate-200/80 rounded-xl overflow-hidden shadow-card">
           <div className="hidden sm:grid grid-cols-[3rem_1fr_8rem_8rem_6rem] px-5 py-2.5 border-b border-slate-100 bg-slate-50/60">
             <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide">#</div>
@@ -213,7 +223,7 @@ export default function LivePage() {
         </div>
       )}
 
-      {data && data.managers.length === 0 && !isLoading && (
+      {data && data.managers.length === 0 && !showSkeleton && (
         <div className="bg-white border border-slate-200/80 rounded-xl px-5 py-10 text-center text-sm text-slate-400 shadow-card">
           No managers found. Make sure your league is configured.
         </div>

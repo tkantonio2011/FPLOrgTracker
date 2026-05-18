@@ -1,5 +1,7 @@
 ---
+
 description: "Task list for 002-multi-league-platform"
+
 ---
 # Tasks: Multi-League Platform
 
@@ -135,7 +137,7 @@ description: "Task list for 002-multi-league-platform"
 
 - [X]  T049 [P] [US1] Create `tests\integration\magic-link.test.ts` (Vitest, integration config). **Scaled-down**: tests the magic-link issue/consume contract directly against a temporary SQLite DB (token hashing, single-use semantics, expiry detection). Full HTTP-route flow is a follow-up that requires more harness wiring. Run via `npm run test:integration`.
 - [X]  T050 [P] [US1] Create `tests\integration\league-isolation.test.ts` (Vitest): seeds 2 leagues with 2 members each. Signs in as a member of league A. Asserts (a) `GET /api/leagues/{B}/standings` → 404, (b) `GET /api/leagues/{A}/standings` → 200 with members of A only, (c) attempting to load `/l/{slugB}/standings` server-side returns 404. This test is the SC-006 verifier — a regression here blocks merge. **Done**: 6 tests against the actual Next.js route handler (dynamic import of `@/app/api/leagues/[leagueId]/standings/route`), exercising the full chain `NextRequest → getSessionFromRequest → resolveLeague → requireLeagueMember`. FPL client is `vi.mock`ed so tests don't hit fantasy.premierleague.com. Covers: (a) 200 with only A's members on `/A/standings`, (b) 404 on `/B/standings` by id, (c) 404 on `/B/standings` by slug (slug-resolver also gates), (d) 401 unauthenticated, (e) 401 with revoked session, (f) 403 on suspended league. Server Component path (`/l/{slugB}/standings`) is still verified at the unit-level by `requireLeagueMemberFromCookie` + `resolveLeague`; full SSR harness can be added if needed but the resolver is shared with the API path covered here.
-- [ ]  T051 [P] [US1] Create `tests\e2e\member-isolation.spec.ts` (Playwright): same as T050 but in a real browser, exercising cookies and Server Component rendering. Asserts visible UI (page text, leaderboard rows, league name in header) is correct. **Deferred**: requires Playwright browser binaries (`npx playwright install chromium`) and a running app with seeded data — best done in a dedicated session.
+- [X]  T051 [P] [US1] Create `tests\e2e\member-isolation.spec.ts` (Playwright): same as T050 but in a real browser, exercising cookies and Server Component rendering. **Done 2026-05-17**: 3 specs against Chromium 1.59.1, all passing in 19s. Scope deliberately narrowed to the UI-layer access-control decision (since route-level data correctness is already covered by T050): (1) signed-in member of A reaches `/l/{A}/standings` → 200, URL preserved; (2) member of A visiting `/l/{B}/standings` → 404 (Next.js `notFound()` from the layout's `requireLeagueMemberFromCookie`), with a negative assertion that League B's name is absent from the document (non-disclosure); (3) unauthenticated request → middleware redirect to `/sign-in?redirect=<encoded-path>`. Supporting infrastructure: `tests/e2e/setup-db.ts` creates `prisma/e2e-test.db`, pushes the schema, seeds 2 leagues + 1 membership + 1 session, and writes `tests/e2e/.fixture.json`; `playwright.config.ts` runs the dev server on port 3100 with `DATABASE_URL` pinned to the e2e DB and `reuseExistingServer: false` so the developer's real DB is never touched; `npm run test:e2e` chains `test:e2e:setup` + `playwright test`. Client-side data fetching (TanStack Query → FPL) is intentionally left to error in the rendered page — we only assert the server's access-control decision via the document status code, which is the actual SC-006 invariant for the UI layer.
 
 **Checkpoint**: A signed-in member of a seeded league can land on `/l/{slug}/standings`, see their leaderboard, navigate every analytics page, and is denied access to any other league's URLs. Magic-link sign-in works. The platform is industry-neutral on every member-facing surface.
 
@@ -350,3 +352,65 @@ Three developers add a third worker on US3 in parallel from the start of Phase 5
 - Commit per task or per logical group. Long-running phases (T041, T042, T045) should commit per file moved.
 - After T040–T045, sanity-check by running `npm run dev` and walking the app as a seeded member; the platform should look identical to the pre-migration single-tenant version, only behind a slug URL.
 - Avoid re-introducing implicit "current organisation" lookups during the route migration. Every server-side data fetch must take `leagueId` as an explicit parameter.
+
+---
+
+## Phase 8: Multi-League Admin UX (User Story 5) — Added 2026-05-13
+
+**Goal**: A user holding the League Admin role on more than one active league can manage all of those leagues without UX friction — a single "admin home" lists every league they administer, the LeagueSwitcher preserves admin sub-paths when switching, and the league chooser groups admin vs. member memberships.
+
+**Independent Test**: Seed a UserAccount with `role: 'admin'` on two active leagues and `role: 'member'` on a third. Sign in as that user. (a) `/my-admin` shows both admin leagues with deep-link buttons (Settings / Members / Digest / Audit) but NOT the member-only league. (b) From `/l/A/admin/members`, picking League B in the LeagueSwitcher lands at `/l/B/admin/members`. (c) From `/l/A/standings`, picking League C (member-only) lands at `/l/C/standings`. (d) `/leagues` shows two groups: "Leagues you administer" (2 entries) and "Leagues you're a member of" (1 entry). (e) The sidebar inside any league shell shows "My admin leagues" linking to `/my-admin`. Suspend League B → the deep-links to its admin sub-shell render disabled with a "Suspended" chip.
+
+**No schema changes. No new HTTP endpoints.** All four surfaces read from existing data (`getServerUserFromCookie` server-side, the already-cached `useQuery(['me-leagues'])` client-side).
+
+### Routing helper
+
+- [X]  T101 [US5] Create `src\lib\routing\admin-path-mapper.ts` exporting `mapAdminPath(currentPath: string, targetLeagueSlug: string, targetRole: 'admin' | 'member'): string`. Per the behaviour table in `specs\002-multi-league-platform\contracts\multi-admin-ux.md`: when `currentPath` matches `^/l/[^/]+/admin(/.*)?$` AND `targetRole === 'admin'`, return `/l/<target>/admin<sub>` (preserving every segment after `admin/` EXCEPT trailing per-id segments under `admin/members/<id>` which collapse back to `admin/members`); otherwise return `/l/<target>/standings`. Drop query/hash, normalise trailing `/`. Pure — no I/O, no React. JSDoc the behaviour table inline.
+- [X]  T102 [P] [US5] Create `tests\unit\routing\admin-path-mapper.test.ts` (Vitest). Table-driven cases — one `it` per row of the behaviour table in `contracts\multi-admin-ux.md`: admin → admin sub-path preservation across `admin`, `admin/settings`, `admin/members`, `admin/digest`, `admin/audit`; admin/members/<id> collapse; admin → member fallback to `/standings`; non-admin source paths fall through to `/standings`; `/my-admin` source returns `/standings`; trailing-slash + query/hash normalisation. Plus an idempotency assertion: `mapAdminPath(mapAdminPath(p, s, r), s, r) === mapAdminPath(p, s, r)` for each row.
+
+### Admin home page
+
+- [X]  T103 [US5] Create `src\app\(main)\my-admin\page.tsx` — Server Component. Reads `cookies().get(SESSION_COOKIE_NAME)?.value` → `getServerUserFromCookie(token)`; redirects to `/sign-in?redirect=/my-admin` if no session. Filters `user.memberships` to `role === 'admin' && isActive === true && league.status !== 'suspended-without-admin-view'` (admins always retain view on suspended leagues — show them with disabled links). Render branches per the contract: empty-state, list with cards. Each card shows league name + status chip + four deep-link buttons (Settings → `/l/<slug>/admin/settings`, Members → `/l/<slug>/admin/members`, Digest → `/l/<slug>/admin/digest`, Audit → `/l/<slug>/admin/audit`). For `status === 'suspended'` leagues, render the buttons as `<span aria-disabled="true">` with a `title` tooltip "League is suspended" and a single enabled "Open league" link to `/l/<slug>/` (which renders the suspended page via the existing `[leagueSlug]/layout.tsx`). Industry-neutral copy only — covered by the existing T091 branding scan.
+
+### Modified surfaces
+
+- [X]  T104 [US5] Modify `src\components\league\LeagueSwitcher.tsx` — replace the hardcoded `href={`/l/${m.leagueSlug}/standings`}` with `href={mapAdminPath(pathname ?? '', m.leagueSlug, m.role)}`. Read `pathname` from `usePathname()` (already a client component). The existing "Admin" chip rendering and current-league filter are unchanged. The dropdown's "Switch league" header copy is unchanged.
+- [X]  T105 [P] [US5] Modify `src\app\(main)\leagues\page.tsx` — after the existing membership fetch, partition `active` into `adminLeagues = active.filter(m => m.role === 'admin')` and `memberLeagues = active.filter(m => m.role === 'member')`. When both arrays are non-empty, render two stacked `<section>`s — "Leagues you administer" (showing the existing card plus an inline `<Link href={`/l/${m.league.slug}/admin/settings`}>Settings</Link>` and `Members` deep-link row beneath the name) and "Leagues you're a member of". When one array is empty, fall back to the existing single-list layout. Single-league redirect, Super Admin footer, and `next` sanitisation behaviour are unchanged. Suspended admin leagues render with the "Suspended" chip and the deep-links disabled (consistent with T103).
+- [X]  T106 [P] [US5] Modify `src\components\layout\Sidebar.tsx` — add a new top-level NavItem entry "My admin leagues" (`path: '/my-admin'`, `platform: true` so the league prefix is not applied) rendered conditionally. Read the user's memberships via `useQuery({ queryKey: ['me-leagues'], queryFn: () => fetch('/api/auth/me').then(r => r.json()) })` (same key the LeagueSwitcher uses — TanStack Query dedupes the fetch). Show the entry IFF `leagueSlug !== null` (we are inside a league shell) AND `memberships.filter(m => m.isActive && m.role === 'admin').length >= 2`. Place the entry directly above the existing per-league "Admin" link in the final `navGroups` block so admin-y things stay together. Use the existing `SettingsIcon` or a new pseudo-icon (a small "layers" glyph is fine — pick from the existing inline SVG set; do not pull in a new icon library).
+
+### Tests for US5
+
+- [X]  T107 [P] [US5] Create `tests\integration\multi-league-admin.test.ts` (Vitest, integration config). Seeds a temp SQLite DB with: 1 Platform row, 3 active Leagues (A, B, C), 1 UserAccount, 3 LeagueMemberships (admin on A, admin on B, member on C). Asserts: (a) `getServerUserFromCookie(<token>)` returns memberships in which exactly 2 entries have `role === 'admin'`; (b) the admin-filter the `/my-admin` page uses (`m => m.role === 'admin' && m.isActive`) yields A and B but not C; (c) `mapAdminPath('/l/a/admin/members', 'b', 'admin')` returns `/l/b/admin/members`; `mapAdminPath('/l/a/admin/members', 'c', 'member')` returns `/l/c/standings`. Then flip League B's `status` to `'suspended'` and assert the same filter still returns B (suspended admin leagues remain listed) — the page-level disabling is enforced by the render branch, not the data filter.
+
+### Documentation
+
+- [X]  T108 [P] [US5] Update `specs\002-multi-league-platform\checklists\requirements.md` — under the existing "Pre-cutover Verification" section, add a new sub-section "Multi-league admin UX (Phase 8)" with the five checklist items from `quickstart.md`'s "Verifying the multi-league admin flow" section. Mark them unchecked until T101–T107 are merged and the manual sweep is run.
+
+**Checkpoint**: A user who administers two or more leagues lands on `/my-admin` to see all of them at once, switches between them without losing admin context, and sees the chooser group their admin and member leagues separately. The existing single-league admin flow is unchanged for the majority of users who only admin one league. Branding scan (T091) and authz coverage (T097) continue to pass — neither asserts anything that the new files would violate.
+
+---
+
+## Phase 8 Dependencies & Execution Order
+
+- **T101** is the only blocker for everything else: T103, T104, T105 (transitively via the chooser-link UI), and T107 all import or depend on `mapAdminPath`'s shape.
+- **T102** depends on T101 (the file must exist) but the test was authored against the contract behaviour table, so it can be written in parallel with T101 if a stub function is committed first.
+- **T103, T104, T105, T106, T107** are all `[P]` once T101 lands — they touch distinct files (`my-admin/page.tsx`, `LeagueSwitcher.tsx`, `leagues/page.tsx`, `Sidebar.tsx`, the integration test) with no shared state.
+- **T108** depends on T107 producing a passing test before the checklist is updated to "verified".
+
+### Parallel launch — Phase 8 single-developer order
+
+```bash
+# Sequential
+Task: "Create admin-path-mapper.ts (T101)"
+# Then in parallel:
+Task: "Unit test admin-path-mapper (T102)"
+Task: "Create /my-admin page (T103)"
+Task: "Modify LeagueSwitcher (T104)"
+Task: "Modify /leagues chooser (T105)"
+Task: "Modify Sidebar (T106)"
+Task: "Integration test (T107)"
+# Last
+Task: "Update requirements.md checklist (T108)"
+```
+
+Two-developer split: Dev A picks T101 → T102 → T104 (the routing chain); Dev B picks T103 → T105 → T106 (the page/chooser/sidebar surfaces); converge on T107 + T108.

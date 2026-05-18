@@ -91,6 +91,10 @@ export default async function LeaguesPage({ searchParams }: PageProps) {
     );
   }
 
+  const adminLeagues = active.filter((m) => m.role === "admin");
+  const memberLeagues = active.filter((m) => m.role === "member");
+  const splitGroups = adminLeagues.length > 0 && memberLeagues.length > 0;
+
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
       <div className="w-full max-w-md">
@@ -100,21 +104,42 @@ export default async function LeaguesPage({ searchParams }: PageProps) {
             ? "Pick a destination."
             : "You're a member of more than one league."}
         </p>
-        <ul className="space-y-2">
-          {active.map((m) => (
-            <li key={m.id}>
-              <Link
-                href={`/l/${m.league.slug}${targetSegment}`}
-                className="flex items-center justify-between px-4 py-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
-              >
-                <span className="font-medium text-slate-900">{m.league.name}</span>
-                {m.role === "admin" && (
-                  <span className="text-[10px] uppercase tracking-wide text-slate-400">Admin</span>
-                )}
-              </Link>
-            </li>
-          ))}
-        </ul>
+
+        {splitGroups ? (
+          <div className="space-y-6">
+            <section>
+              <h2 className="text-[10px] uppercase tracking-widest font-semibold text-slate-400 mb-2">
+                Leagues you administer
+              </h2>
+              <ul className="space-y-2">
+                {adminLeagues.map((m) => (
+                  <AdminLeagueRow key={m.id} membership={m} targetSegment={targetSegment} />
+                ))}
+              </ul>
+            </section>
+            <section>
+              <h2 className="text-[10px] uppercase tracking-widest font-semibold text-slate-400 mb-2">
+                Leagues you&apos;re a member of
+              </h2>
+              <ul className="space-y-2">
+                {memberLeagues.map((m) => (
+                  <MemberLeagueRow key={m.id} membership={m} targetSegment={targetSegment} />
+                ))}
+              </ul>
+            </section>
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {active.map((m) =>
+              m.role === "admin" ? (
+                <AdminLeagueRow key={m.id} membership={m} targetSegment={targetSegment} />
+              ) : (
+                <MemberLeagueRow key={m.id} membership={m} targetSegment={targetSegment} />
+              ),
+            )}
+          </ul>
+        )}
+
         {isSuperAdmin && (
           <>
             <div className="flex items-center gap-3 my-5">
@@ -135,5 +160,75 @@ export default async function LeaguesPage({ searchParams }: PageProps) {
         )}
       </div>
     </div>
+  );
+}
+
+interface RowMembership {
+  id: string;
+  role: string;
+  league: { slug: string; name: string; status: string };
+}
+
+function AdminLeagueRow({
+  membership,
+  targetSegment,
+}: {
+  membership: RowMembership;
+  targetSegment: string;
+}) {
+  const suspended = membership.league.status === "suspended";
+  return (
+    <li>
+      <Link
+        href={`/l/${membership.league.slug}${targetSegment}`}
+        className={`flex items-center justify-between px-4 py-3 rounded-lg border bg-white transition-colors ${
+          suspended
+            ? "border-amber-200 bg-amber-50/50 hover:bg-amber-50"
+            : "border-slate-200 hover:bg-slate-50"
+        }`}
+      >
+        <span className="font-medium text-slate-900">{membership.league.name}</span>
+        {suspended ? (
+          <span className="text-[10px] uppercase tracking-wide text-amber-700">Suspended</span>
+        ) : (
+          <span className="text-[10px] uppercase tracking-wide text-slate-400">Admin</span>
+        )}
+      </Link>
+      {!suspended && (
+        <div className="mt-1 flex gap-3 px-4">
+          <Link
+            href={`/l/${membership.league.slug}/admin/settings`}
+            className="text-[11px] text-slate-500 hover:text-slate-900"
+          >
+            Settings
+          </Link>
+          <Link
+            href={`/l/${membership.league.slug}/admin/members`}
+            className="text-[11px] text-slate-500 hover:text-slate-900"
+          >
+            Members
+          </Link>
+        </div>
+      )}
+    </li>
+  );
+}
+
+function MemberLeagueRow({
+  membership,
+  targetSegment,
+}: {
+  membership: RowMembership;
+  targetSegment: string;
+}) {
+  return (
+    <li>
+      <Link
+        href={`/l/${membership.league.slug}${targetSegment}`}
+        className="flex items-center justify-between px-4 py-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
+      >
+        <span className="font-medium text-slate-900">{membership.league.name}</span>
+      </Link>
+    </li>
   );
 }

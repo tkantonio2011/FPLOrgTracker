@@ -378,3 +378,28 @@ Bootstrap actions during migration:
 In addition to the existing scope (Organisation + Member, now League + LeagueMembership + UserAccount), the new schema adds **eight** new tables: Platform, LeagueSlugHistory, SuperAdmin, MagicLinkToken, Session, Invitation, AuditEvent. All FPL-sourced data remains transient/cached at the request layer — the multi-tenant change does not introduce new caching state.
 
 The schema continues to fit a single SQLite file. Indexes are sized to the v1 target (50 leagues × 50 members ≈ 2,500 LeagueMemberships, ~50,000 audit events/year at the upper bound).
+
+---
+
+# Data-Model Addendum — Multi-League Admin UX Delta (2026-05-13)
+
+**No schema changes.** The capability "a single UserAccount holds `role: 'admin'` on multiple LeagueMemberships" is already a first-class case in the schema:
+
+- `LeagueMembership` is uniquely keyed by `(leagueId, userAccountId)` — a user can hold one membership per league, freely.
+- `LeagueMembership.role` is per-row, so the same user can be `admin` on one row and `member` on another.
+- The "must keep one admin" guard at `requireLeagueAdmin` / role-change endpoints already counts admins per league, not globally.
+
+### Indexes already covering the new read patterns
+
+The two new query paths (`/my-admin` page and the LeagueSwitcher's role-aware path mapping) are served by indexes already defined for 002:
+
+| New query | Covered by |
+|---|---|
+| "All leagues this UserAccount admins" — `WHERE userAccountId = ? AND role = 'admin' AND isActive = true` | existing `LeagueMembership @@index([userAccountId])` plus the in-row `role` / `isActive` columns — at v1 scale the index seek + filter is well under 1 ms |
+| "Is this user an admin of league X?" — used by LeagueSwitcher's path-mapper | existing `LeagueMembership @@unique([leagueId, userAccountId])` |
+
+No new indexes are needed. The existing v1-sized envelope (50 leagues × 50 members) means a user can hold at most 50 memberships, so the full list scan per request is bounded.
+
+### No new entities, enums, or state transitions
+
+All four UI artifacts (`/my-admin` page, modified `/leagues` chooser, modified `LeagueSwitcher`, modified `Sidebar`) read from `UserAccount`, `LeagueMembership`, and `League` only. No writes. No new audit events.

@@ -218,3 +218,46 @@ For an upgrade from an existing 001-shaped DB, run `npm run db:seed` after `npx 
 - Mobile app.
 
 These are deliberate v1 cutoffs. Each was considered and deferred — see `research.md` and `spec.md` Assumptions for the full list.
+
+---
+
+# Quickstart Addendum — Multi-League Admin UX (2026-05-13)
+
+## Verifying the multi-league admin flow
+
+This delta adds three reachable surfaces. To verify each:
+
+1. **Seed two leagues** with the same UserAccount holding `role: 'admin'` on both:
+   ```sql
+   -- against the dev DB
+   INSERT INTO LeagueMembership (leagueId, userAccountId, managerId, role, isActive, source, addedAt)
+     VALUES ('<league-A-id>', '<your-userAccount-id>', 9999, 'admin', 1, 'manual', datetime('now'));
+   INSERT INTO LeagueMembership (leagueId, userAccountId, managerId, role, isActive, source, addedAt)
+     VALUES ('<league-B-id>', '<your-userAccount-id>', 9999, 'admin', 1, 'manual', datetime('now'));
+   ```
+   In normal operation a Super Admin would issue these via `POST /api/platform/leagues` + invitation acceptance, then `PATCH /api/platform/memberships/{id}/role` to promote.
+
+2. **Sign in** as that UserAccount via the magic-link flow.
+
+3. **`/my-admin`** — confirm both leagues appear with deep-link buttons (Settings, Members, Audit, Digest). Click each — they should land at `/l/<slug>/admin/<sub>` for that league.
+
+4. **LeagueSwitcher path preservation** — navigate to `/l/A/admin/members`. Open the LeagueSwitcher and pick League B. You should land at `/l/B/admin/members`, NOT `/l/B/standings`. If you'd been on `/l/A/standings` and picked a league where you're only a Member, you should land at `/l/B/standings` as before.
+
+5. **`/leagues` chooser grouping** — promote a third league's role to `member` (not admin). The chooser at `/leagues` should now show two groups: "Leagues you administer" (2 entries) and "Leagues you're a member of" (1 entry).
+
+6. **Sidebar surface** — inside any `/l/{slug}/...` page, the sidebar should now show a "My admin leagues" link near the existing "Admin" entry (only because the user admins 2+ leagues — try removing one admin role and confirm the link disappears).
+
+## Suspended-league handling
+
+After running `POST /api/platform/leagues/{B}/suspend` as a Super Admin:
+
+- `/my-admin` still lists League B but with a "Suspended" chip; the Settings / Members / Audit / Digest deep links are rendered as disabled non-links.
+- `/leagues` shows League B in its group with the same suspended treatment.
+- Reinstating via `POST /api/platform/leagues/{B}/reinstate` restores the links.
+
+## Tests added
+
+- `tests/unit/routing/admin-path-mapper.test.ts` — table-driven cases covering `mapAdminPath` (admin → admin preservation, admin → member fallback, non-admin source paths fall through unchanged).
+- `tests/integration/multi-league-admin.test.ts` — Vitest: seeds a UserAccount with admin on 2 leagues, asserts the `/my-admin` page (via Server Component dynamic import) renders both leagues, asserts a member-only third league does NOT appear, asserts a suspended admin league appears with `disabled: true` shape.
+
+Run with `npm run test:integration` and `npm test` respectively.

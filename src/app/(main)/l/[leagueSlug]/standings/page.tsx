@@ -6,7 +6,9 @@ import { GwSelector } from "@/components/standings/GwSelector";
 import { LeaderboardTable } from "@/components/standings/LeaderboardTable";
 import { PointsRaceChart } from "@/components/standings/PointsRaceChart";
 import { SkeletonTable } from "@/components/ui/Skeleton";
+import { RefreshingPill } from "@/components/ui/RefreshingPill";
 import { useLeague } from "@/components/league/LeagueProvider";
+import { useFreshnessGate } from "@/lib/hooks/useFreshnessGate";
 
 interface ManagerTitle {
   managerId: number;
@@ -71,7 +73,7 @@ export default function LeagueStandingsPage() {
   });
   const titlesMap = titlesData ? new Map(titlesData.titles.map((t) => [t.managerId, t])) : undefined;
 
-  const { data, isLoading, isError } = useQuery<StandingsApiBody>({
+  const standingsQuery = useQuery<StandingsApiBody>({
     queryKey: ["standings", league.id, activeGw],
     queryFn: async () => {
       const res = await fetch(
@@ -84,6 +86,14 @@ export default function LeagueStandingsPage() {
     enabled: activeGw !== undefined,
     staleTime: 60_000,
     refetchInterval: 60_000,
+    // Always trigger a refetch on revisit so the user gets current numbers.
+    // The freshness gate below decides whether to show the stale cache while
+    // we wait, or hide it behind a skeleton (>5 min old).
+    refetchOnMount: "always",
+  });
+  const { data, isError } = standingsQuery;
+  const { showSkeleton, showRefreshingPill } = useFreshnessGate(standingsQuery, {
+    staleAfterMs: 5 * 60_000,
   });
 
   const standings = data?.data;
@@ -91,9 +101,12 @@ export default function LeagueStandingsPage() {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-          <p className="text-sm text-slate-400 mt-0.5">{league.name} — gameweek standings</p>
+        <div className="flex items-center gap-3 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
+            <p className="text-sm text-slate-400 mt-0.5">{league.name} — gameweek standings</p>
+          </div>
+          {showRefreshingPill && <RefreshingPill />}
         </div>
         {currentGw && (
           <GwSelector selectedGw={activeGw ?? currentGw} onChange={(gw) => setSelectedGw(gw)} />
@@ -102,13 +115,13 @@ export default function LeagueStandingsPage() {
 
       {currentGw && <PointsRaceChart currentGw={currentGw} />}
 
-      {isLoading && <SkeletonTable rows={8} cols={4} />}
+      {showSkeleton && <SkeletonTable rows={8} cols={4} />}
       {isError && (
         <div className="bg-red-50 border border-red-200/80 text-red-700 px-4 py-3 rounded-xl text-sm shadow-card">
           Unable to load standings. The FPL API may be temporarily unavailable.
         </div>
       )}
-      {standings && (
+      {standings && !showSkeleton && (
         <LeaderboardTable
           standings={standings.standings}
           leagueAverageGwPoints={standings.leagueAverageGwPoints}

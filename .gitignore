@@ -21,6 +21,8 @@ build/
 *.db
 *.db-journal
 *.db-wal
+*.db-shm
+*.db.pre-*
 
 # Logs
 *.log
@@ -53,3 +55,8 @@ next-env.d.ts
 coverage/
 /env.production
 /env.local
+
+# Playwright
+test-results/
+playwright-report/
+tests/e2e/.fixture.json

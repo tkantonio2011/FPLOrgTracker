@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 
 const TrophyIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -159,6 +160,31 @@ const ArmBandIcon = () => (
   </svg>
 );
 
+const LayersIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+    <polyline points="2 17 12 22 22 17"/>
+    <polyline points="2 12 12 17 22 12"/>
+  </svg>
+);
+
+interface MeMembershipForSidebar {
+  leagueId: string;
+  leagueSlug: string;
+  leagueName: string;
+  leagueLogoUrl: string | null;
+  role: "member" | "admin";
+  isActive: boolean;
+}
+interface MeResponseForSidebar {
+  memberships?: MeMembershipForSidebar[];
+}
+
+interface LeagueBadgeData {
+  name: string;
+  logoUrl: string | null;
+}
+
 interface NavItem {
   /** Path relative to the league shell (e.g. "/standings"). Resolved at render. */
   path: string;
@@ -219,6 +245,13 @@ const navGroups: NavGroup[] = [
   },
 ];
 
+const multiAdminItem: NavItem = {
+  path: "/my-admin",
+  label: "My admin leagues",
+  icon: <LayersIcon />,
+  platform: true,
+};
+
 function extractLeagueSlug(pathname: string | null): string | null {
   if (!pathname) return null;
   const match = pathname.match(/^\/l\/([^/]+)/);
@@ -234,6 +267,27 @@ export function Sidebar({ version, onClose }: { version: string; onClose?: () =>
   const pathname = usePathname();
   const router = useRouter();
   const leagueSlug = extractLeagueSlug(pathname);
+
+  const { data: meData } = useQuery<MeResponseForSidebar | null>({
+    queryKey: ["me-leagues"],
+    queryFn: () => fetch("/api/auth/me").then((r) => (r.ok ? r.json() : null)),
+    staleTime: 60_000,
+  });
+  const memberships = meData?.memberships ?? [];
+  const adminMembershipCount = memberships.filter(
+    (m) => m.isActive && m.role === "admin",
+  ).length;
+  const showMultiAdminLink = leagueSlug !== null && adminMembershipCount >= 2;
+
+  // Resolve the current league's display info from the user's memberships.
+  // Super Admins viewing a league they don't belong to will have no match here
+  // and the badge will be hidden — acceptable for v1.
+  const activeMembership = leagueSlug
+    ? memberships.find((m) => m.leagueSlug === leagueSlug && m.isActive)
+    : null;
+  const leagueBadge: LeagueBadgeData | null = activeMembership
+    ? { name: activeMembership.leagueName, logoUrl: activeMembership.leagueLogoUrl }
+    : null;
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -290,6 +344,24 @@ export function Sidebar({ version, onClose }: { version: string; onClose?: () =>
         </div>
       </div>
 
+      {/* League badge — visible when inside a league shell and a logo is configured */}
+      {leagueBadge?.logoUrl && (
+        <div className="px-5 py-3 border-b border-white/10 flex items-center gap-2.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={leagueBadge.logoUrl}
+            alt=""
+            className="w-7 h-7 rounded object-cover shrink-0 bg-white/5 border border-white/10"
+          />
+          <div
+            className="text-white/80 text-xs font-medium leading-tight truncate"
+            title={leagueBadge.name}
+          >
+            {leagueBadge.name}
+          </div>
+        </div>
+      )}
+
       {/* Navigation */}
       <nav className="flex-1 px-3 py-3 overflow-y-auto space-y-4">
         {navGroups.map((group, gi) => {
@@ -298,9 +370,34 @@ export function Sidebar({ version, onClose }: { version: string; onClose?: () =>
             const href = resolveHref(item, leagueSlug);
             return item.exact ? pathname === href : pathname?.startsWith(href);
           });
+          // Inject the multi-admin link directly above the final per-league
+          // "Admin" item so admin-y things stay together.
+          const isAdminGroup =
+            group.items.length === 1 && group.items[0]?.path === "/admin";
+          const renderMultiAdminAbove = isAdminGroup && showMultiAdminLink;
+          const multiAdminActive =
+            renderMultiAdminAbove && pathname?.startsWith("/my-admin");
 
           return (
             <div key={gi} className="space-y-0.5">
+              {renderMultiAdminAbove && (
+                <Link
+                  href={multiAdminItem.path}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer ${
+                    multiAdminActive
+                      ? "bg-white/15 text-[#00ff87] shadow-[inset_0_1px_0_rgb(255_255_255/0.1)]"
+                      : "text-white/60 hover:bg-white/8 hover:text-white/90"
+                  }`}
+                >
+                  <span className={`shrink-0 transition-colors ${multiAdminActive ? "text-[#00ff87]" : "text-white/40"}`}>
+                    {multiAdminItem.icon}
+                  </span>
+                  {multiAdminItem.label}
+                  {multiAdminActive && (
+                    <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#00ff87]" />
+                  )}
+                </Link>
+              )}
               {group.label && (
                 <button
                   onClick={() => toggleGroup(group.label!)}
