@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#37003c" />
+      <stop offset="100%" stop-color="#6b007f" />
+    </linearGradient>
+    <pattern id="grid" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M 60 0 L 0 0 0 60" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="720" fill="url(#bg)"/>
+  <rect width="1200" height="720" fill="url(#grid)"/>
+  <rect x="120" y="200" width="960" height="320" rx="16" fill="#ffffff" opacity="0.96"/>
+  <rect x="160" y="240" width="6" height="240" rx="3" fill="#00ff87"/>
+  <text x="200" y="290" font-family="Inter,system-ui,sans-serif" font-size="20" font-weight="600" fill="#00ff87" letter-spacing="2">SCREENSHOT · PLACEHOLDER</text>
+  <text x="200" y="370" font-family="Inter,system-ui,sans-serif" font-size="56" font-weight="800" fill="#37003c">Form Table</text>
+  <text x="200" y="420" font-family="Inter,system-ui,sans-serif" font-size="26" font-weight="500" fill="#4f005e">Trend at a glance</text>
+  <text x="200" y="478" font-family="Inter,system-ui,sans-serif" font-size="14" fill="#64748b">Replace this file with a real 2× DPI screenshot and update the .alt sidecar.</text>
+</svg>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useLeague } from "@/components/league/LeagueProvider";
 
 interface QA {
   question: string;
@@ -30,7 +31,7 @@ interface StandingsEntry {
 
 interface StandingsData {
   gameweekId: number;
-  orgAverageGwPoints: number;
+  leagueAverageGwPoints: number;
   standings: StandingsEntry[];
 }
 
@@ -54,16 +55,23 @@ function MicIcon() {
   );
 }
 
+interface ApiEnvelope<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 export function GwTribunal({
   standingsData,
 }: {
   standingsData: StandingsData;
 }) {
+  const { league } = useLeague();
   const [tribunal, setTribunal] = useState<TribunalData | null>(null);
   const [loading, setLoading]   = useState(false);
   const [open, setOpen]         = useState(false);
-  const generatedRef            = useRef<number | null>(null);
+  const generatedRef            = useRef<string | null>(null);
 
   // Sort by GW pts ascending → last entry = bottom scorer
   const gwRanked   = [...standingsData.standings].sort(
@@ -73,11 +81,14 @@ export function GwTribunal({
   const gwId       = standingsData.gameweekId;
 
   useEffect(() => {
-    if (!bottom || generatedRef.current === gwId) return;
-    generatedRef.current = gwId;
+    if (!bottom) return;
 
-    // Check localStorage cache first
-    const cacheKey = `tribunal-gw${gwId}-${bottom.managerId}`;
+    // Cache key is league-scoped so a multi-league member doesn't see another
+    // league's tribunal when their bottom-scorer happens to share a managerId.
+    const cacheKey = `tribunal-v2-${league.id}-gw${gwId}-${bottom.managerId}`;
+    if (generatedRef.current === cacheKey) return;
+    generatedRef.current = cacheKey;
+
     try {
       const cached = localStorage.getItem(cacheKey);
       if (cached) {
@@ -90,7 +101,7 @@ export function GwTribunal({
 
     // Generate
     setLoading(true);
-    fetch("/api/tribunal", {
+    fetch(`/api/leagues/${league.id}/tribunal`, {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -99,20 +110,22 @@ export function GwTribunal({
         managerName: bottom.displayName,
         teamName:    bottom.teamName,
         gwScore:     bottom.gameweekPoints,
-        orgAvg:      standingsData.orgAverageGwPoints,
+        leagueAvg:   standingsData.leagueAverageGwPoints,
         rankChange:  bottom.rankChange,
         chipUsed:    bottom.chipUsed ? CHIP_LABELS[bottom.chipUsed] ?? bottom.chipUsed : null,
       }),
     })
       .then(async (r) => {
-        if (!r.ok) return; // silently absent if Groq not configured (501)
-        const data = (await r.json()) as TribunalData;
-        if (!data.intro) return;
+        if (!r.ok) return; // silently absent if Groq not configured (501) or league denies
+        const envelope = (await r.json()) as ApiEnvelope<TribunalData>;
+        const data = envelope.success ? envelope.data : null;
+        if (!data?.intro) return;
         setTribunal(data);
-        // Cache — evict older GWs
+        // Cache — evict older GWs and any stale v1 (non-league-keyed) entries.
         try {
           localStorage.setItem(cacheKey, JSON.stringify(data));
           for (let i = 1; i < gwId; i++) {
+            localStorage.removeItem(`tribunal-v2-${league.id}-gw${i}-${bottom.managerId}`);
             localStorage.removeItem(`tribunal-gw${i}-${bottom.managerId}`);
           }
         } catch {
@@ -124,7 +137,7 @@ export function GwTribunal({
       })
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gwId, bottom?.managerId]);
+  }, [gwId, bottom?.managerId, league.id]);
 
   // Don't render if no data and not loading
   if (!loading && !tribunal) return null;

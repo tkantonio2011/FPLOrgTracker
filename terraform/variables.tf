@@ -17,9 +17,16 @@ variable "instance_type" {
 }
 
 variable "root_volume_size_gb" {
-  description = "Root EBS volume size in GB. Free tier includes 30 GB gp2 storage"
+  description = <<-EOT
+    Root EBS volume size in GB. AWS free tier includes 30 GB gp2 storage per
+    account total. Newer Amazon Linux 2023 AMIs are published with a 30 GB
+    root snapshot, so smaller values fail at instance-creation time with
+    InvalidBlockDeviceMapping. The existing production instance still has
+    its original 20 GB volume — `ignore_changes = [ami]` on aws_instance.app
+    prevents that being affected by this default.
+  EOT
   type        = number
-  default     = 20
+  default     = 30
 }
 
 variable "ssh_allowed_cidr" {
@@ -30,4 +37,17 @@ variable "ssh_allowed_cidr" {
   EOT
   type        = string
   default     = "0.0.0.0/0"
+}
+
+variable "enable_uat" {
+  description = <<-EOT
+    When true, provision a second EC2 instance + security group + Elastic IP for
+    the UAT environment alongside production. See specs/004-uat-deployment/.
+    Defaults to false so that `terraform apply` on an existing production-only
+    deployment does not silently add a second instance. Set to true explicitly
+    (e.g. `terraform apply -var enable_uat=true`) when you are ready to stand
+    UAT up, after preparing .env.uat.
+  EOT
+  type        = bool
+  default     = false
 }

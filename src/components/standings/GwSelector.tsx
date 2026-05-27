@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useOptionalLeague } from "@/components/league/LeagueProvider";
 
 interface Gameweek {
   id: number;
@@ -15,10 +16,30 @@ interface GwSelectorProps {
   onChange: (gw: number) => void;
 }
 
+interface ApiEnvelope<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
+type GameweeksPayload = { currentGameweek: number; gameweeks: Gameweek[] };
+
 export function GwSelector({ selectedGw, onChange }: GwSelectorProps) {
-  const { data } = useQuery<{ currentGameweek: number; gameweeks: Gameweek[] }>({
-    queryKey: ["gameweeks"],
-    queryFn: () => fetch("/api/gameweeks").then((r) => r.json()),
+  const ctx = useOptionalLeague();
+  const { data } = useQuery<GameweeksPayload>({
+    queryKey: ctx ? ["gameweeks", ctx.league.id] : ["gameweeks"],
+    queryFn: async () => {
+      if (ctx) {
+        // Inside the league shell — use the gated endpoint.
+        const res = await fetch(`/api/leagues/${ctx.league.id}/gameweeks`);
+        const body = (await res.json()) as ApiEnvelope<GameweeksPayload>;
+        if (!res.ok || !body.success || !body.data) throw new Error(body.error ?? "Gameweeks failed");
+        return body.data;
+      }
+      // Outside the league shell (legacy top-level pages) — fall back to the
+      // legacy endpoint; it will go away when those pages are deleted.
+      return fetch("/api/gameweeks").then((r) => r.json());
+    },
     staleTime: 300_000,
   });
 

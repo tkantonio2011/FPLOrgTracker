@@ -1,0 +1,63 @@
+---
+title: When a league is suspended
+audience: admin
+summary: What you and your members see when a Super Admin suspends the league, and what happens to your data.
+lastUpdated: 2026-05-18
+---
+
+A Super Admin can suspend a league at any time, with an optional reason. Suspension is a deliberate, recoverable state — not a deletion. The data is preserved exactly as it was; only access is gated.
+
+<AnnotatedImage src="suspended-league/banner.svg" caption="The suspended-league banner that replaces every page when a league is in this state." />
+
+## What members see
+
+When your league is suspended, every member who navigates to a `/l/<your-slug>/...` page sees a full-page banner:
+
+> **This league is suspended**
+>
+> [optional reason from the Super Admin]
+>
+> Contact your league admin or the platform operator for details.
+
+The actual page content (standings, charts, members table, admin sub-shell) is NOT rendered. It exists in the database; the route handler short-circuits the render at the layout level.
+
+The sidebar still works — they can navigate to other leagues they belong to, or to platform-scoped pages like `/help`. They just can't enter this league's surfaces.
+
+## What you (the League Admin) see
+
+Same banner. Suspension applies to admins too. You can't change settings, invite members, send digests, or read the audit log of a suspended league from the per-league admin sub-shell.
+
+You can still:
+
+- Read the [Audit log](/help/league-admin/audit-log) entry that recorded the suspension, by sorting your league's audit by `league.suspended` — accessible from the platform Super Admin view (visible to them only).
+- See the league listed on your [/my-admin](/help/league-admin/overview) page if you administer multiple leagues, with a "Suspended" chip and the deep-link buttons disabled.
+
+## What's preserved
+
+Everything. Memberships, audit events, league settings, digest cache, slug history — none of it is touched by suspension. The state is purely access-control.
+
+When the Super Admin reinstates the league, every surface lights up exactly as it was. No data is lost.
+
+## Why a league might be suspended
+
+The Super Admin's call, but typical reasons:
+
+- The league's mini-league has been deleted on the FPL side, so member sync no longer works.
+- The platform operator needs to perform maintenance affecting that specific league.
+- The league has become inactive (no logins for months) and is being parked.
+- A house-rules dispute that's escalated to the platform level (rare).
+
+The Super Admin can include a public reason that surfaces on the banner. Or they can suspend silently with no reason.
+
+## What to do as an admin
+
+If your league is suspended and you don't know why:
+
+1. **Check the audit log via the Super Admin** — they can see the suspension event including any reason.
+2. **Reach out to the Super Admin** — the banner says "contact your league admin or the platform operator". They are the only ones who can reinstate.
+
+If suspension is unexpected, ask first whether reinstatement is straightforward (e.g. you fix the issue that caused it) or whether it's a longer-term decision.
+
+<Callout type="warning" title="Suspension is reversible; deletion is not">
+  This app deliberately doesn't expose league deletion as a normal operation — there's no "delete this league" button anywhere. Suspension is the cool-down mechanism. If a league truly needs to go away forever, that's a platform-operator database operation, not an in-app action.
+</Callout>

@@ -1,0 +1,53 @@
+---
+title: Syncing members from FPL
+audience: admin
+summary: Pull your FPL mini-league's roster into the app in one click. Re-run whenever members come or go.
+lastUpdated: 2026-05-18
+featurePagePath: /l/[leagueSlug]/admin/members
+relatedTopics:
+  - /help/league-admin/league-settings
+  - /help/league-admin/inviting-members
+---
+
+Once you've set the mini-league ID in [League Settings](/help/league-admin/league-settings), the **Sync from League** button on the Members admin page pulls every member of that mini-league into your app-level roster.
+
+<AnnotatedImage src="syncing-members/button.png" caption="The Sync from League button at the top of the Members admin page." />
+
+## What sync does
+
+When you click Sync:
+
+1. The app calls the FPL API for your mini-league's full standings.
+2. For each FPL manager in the result that doesn't already exist as a LeagueMembership in your league → create one.
+3. For each existing LeagueMembership whose FPL manager has LEFT the mini-league (no longer in the FPL results) → mark inactive.
+4. Manually-added members (those you added by email invitation, not via FPL sync) are left untouched — they're never auto-deactivated by sync.
+
+The result message shows: **added: N, removed: M** — so you can see at a glance what changed.
+
+## What sync does NOT do
+
+- It does NOT send any emails. Newly-synced members exist in your roster but can't sign in until you explicitly invite them. See [Inviting members](/help/league-admin/inviting-members).
+- It does NOT change any FPL-side data. Your mini-league on the official FPL site is the source of truth; this app reads from it.
+- It does NOT create UserAccounts. A LeagueMembership without a UserAccount means the manager appears in standings (their FPL points show up) but they can't sign in.
+
+## When to run sync
+
+- **Once** during initial setup, after setting the mini-league ID.
+- **Whenever** a member joins or leaves your FPL mini-league.
+- **Before** sending the weekly digest, if members may have changed since the last digest.
+
+You don't need to run sync between every gameweek. The FPL API call to fetch standings happens on every page load anyway — sync is only about reconciling who exists in the app, not about refreshing points.
+
+<Callout type="tip" title="If a member shows up but you don't recognise them">
+  This usually means someone joined your mini-league directly via FPL without going through the app's invitation flow. They appear because they're in the mini-league. Decide whether to invite them, ignore them, or remove them from the FPL mini-league entirely.
+</Callout>
+
+## What if sync fails
+
+The most common failures and what they mean:
+
+- **"Mini-league ID not set"** — go to [League Settings](/help/league-admin/league-settings) and fill it in first.
+- **"FPL API unavailable"** — the official FPL API is having a moment. Wait a few minutes and try again.
+- **"Mini-league not found"** — the ID you set doesn't correspond to a real mini-league. Double-check by visiting `https://fantasy.premierleague.com/leagues/<id>/standings/c` in your browser.
+
+All failures are written to the audit log so you can see exactly when sync was attempted and what went wrong.

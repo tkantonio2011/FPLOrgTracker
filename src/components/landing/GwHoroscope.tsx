@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useLeague } from "@/components/league/LeagueProvider";
 
 interface HoroscopeEntry {
   managerId: number;
@@ -23,19 +24,25 @@ interface StandingsData {
   standings: StandingsEntry[];
 }
 
+interface ApiEnvelope<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
 const SIGN_COLOURS: Record<string, string> = {
-  "The Gas Peaker":          "text-orange-400",
-  "The Negative Price":      "text-red-400",
-  "The Baseload Beast":      "text-slate-400",
-  "The Force Majeure":       "text-purple-400",
-  "The Curtailment":         "text-yellow-400",
-  "The Short Squeeze":       "text-rose-400",
-  "The Interconnector":      "text-cyan-400",
-  "The Imbalance Settler":   "text-amber-400",
-  "The Day-Ahead Dreamer":   "text-blue-300",
-  "The Merchant Plant":      "text-green-400",
-  "The Arbitrageur":         "text-emerald-400",
-  "The Balancing Mechanism": "text-indigo-400",
+  "The Comet":      "text-orange-400",
+  "The Eclipse":    "text-slate-400",
+  "The Anchor":     "text-blue-300",
+  "The Tempest":    "text-purple-400",
+  "The Mirage":     "text-yellow-400",
+  "The Avalanche":  "text-cyan-400",
+  "The Phoenix":    "text-rose-400",
+  "The Pendulum":   "text-amber-400",
+  "The Architect":  "text-indigo-400",
+  "The Mercenary":  "text-red-400",
+  "The Magpie":     "text-emerald-400",
+  "The Lighthouse": "text-green-400",
 };
 
 // ── Star icon ─────────────────────────────────────────────────────────────────
@@ -49,21 +56,24 @@ function StarIcon({ className }: { className?: string }) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export function GwHoroscope({ standingsData, currentManagerId }: { standingsData: StandingsData; currentManagerId?: number }) {
+  const { league } = useLeague();
   const [horoscopes, setHoroscopes] = useState<HoroscopeEntry[] | null>(null);
   const [nextGw, setNextGw]         = useState<number | null>(null);
   const [loading, setLoading]       = useState(false);
   const [open, setOpen]             = useState(false);
-  const generatedRef                = useRef<number | null>(null);
+  const generatedRef                = useRef<string | null>(null);
 
   const gwId = standingsData.gameweekId;
 
   useEffect(() => {
-    if (generatedRef.current === gwId) return;
-    generatedRef.current = gwId;
+    // v5: cache key now includes leagueId so a member of multiple leagues
+    // sees a fresh horoscope per league rather than the first one cached.
+    const cacheVersion = `horoscope-v5-${league.id}-gw${gwId}`;
+    if (generatedRef.current === cacheVersion) return;
+    generatedRef.current = cacheVersion;
 
-    const cacheKey = `horoscope-v4-gw${gwId}`;
     try {
-      const cached = localStorage.getItem(cacheKey);
+      const cached = localStorage.getItem(cacheVersion);
       if (cached) {
         const parsed = JSON.parse(cached) as { horoscopes: HoroscopeEntry[]; nextGw: number };
         setHoroscopes(parsed.horoscopes);
@@ -74,7 +84,7 @@ export function GwHoroscope({ standingsData, currentManagerId }: { standingsData
     } catch { /* ignore */ }
 
     setLoading(true);
-    fetch("/api/horoscope", {
+    fetch(`/api/leagues/${league.id}/horoscope`, {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -84,21 +94,25 @@ export function GwHoroscope({ standingsData, currentManagerId }: { standingsData
           displayName: m.displayName,
           teamName:    m.teamName,
           totalPoints: m.totalPoints,
-          orgRank:     m.rank,
+          leagueRank:  m.rank,
           chipUsed:    m.chipUsed,
         })),
       }),
     })
       .then(async (r) => {
         if (!r.ok) return; // silently absent if Groq not configured (501)
-        const json = await r.json() as { horoscopes?: HoroscopeEntry[]; nextGw?: number };
-        if (!json.horoscopes || json.horoscopes.length === 0) return;
-        setHoroscopes(json.horoscopes);
-        setNextGw(json.nextGw ?? gwId + 1);
+        const body = await r.json() as ApiEnvelope<{ horoscopes?: HoroscopeEntry[]; nextGw?: number }>;
+        const data = body.success ? body.data : null;
+        if (!data?.horoscopes || data.horoscopes.length === 0) return;
+        setHoroscopes(data.horoscopes);
+        setNextGw(data.nextGw ?? gwId + 1);
         if (currentManagerId) setOpen(true);
         try {
-          localStorage.setItem(cacheKey, JSON.stringify({ horoscopes: json.horoscopes, nextGw: json.nextGw ?? gwId + 1 }));
+          localStorage.setItem(cacheVersion, JSON.stringify({ horoscopes: data.horoscopes, nextGw: data.nextGw ?? gwId + 1 }));
+          // Evict older cached versions for this league AND any stale pre-v5
+          // entries from the previous (league-agnostic) cache scheme.
           for (let g = 1; g < gwId; g++) {
+            localStorage.removeItem(`horoscope-v5-${league.id}-gw${g}`);
             localStorage.removeItem(`horoscope-v4-gw${g}`);
             localStorage.removeItem(`horoscope-v3-gw${g}`);
             localStorage.removeItem(`horoscope-v2-gw${g}`);
@@ -109,7 +123,7 @@ export function GwHoroscope({ standingsData, currentManagerId }: { standingsData
       .catch(() => { /* silently absent */ })
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gwId]);
+  }, [gwId, league.id]);
 
   if (!loading && !horoscopes) return null;
 

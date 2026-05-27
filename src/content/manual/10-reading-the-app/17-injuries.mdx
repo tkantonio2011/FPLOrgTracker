@@ -1,0 +1,47 @@
+---
+title: Injuries
+audience: member
+summary: A list of every player owned by anyone in your league who has a non-100% chance of playing.
+lastUpdated: 2026-05-18
+featurePagePath: /l/[leagueSlug]/player-status
+---
+
+The Injuries page (called "Player Status" internally and labelled "Injuries" in the sidebar) lists every player owned by at least one manager in your league who is flagged in the FPL data with a less-than-100% chance of playing. It's your weekly watchlist — the players to keep an eye on before the deadline.
+
+<AnnotatedImage src="injuries/overview.png" caption="The Injury & Doubt Tracker listing affected players, their FPL status, and which managers own them." />
+
+## How players appear here
+
+A player is flagged when FPL's API marks their **chance of playing this round** as something other than 100%. The values FPL uses are:
+
+| Chance | Meaning |
+|---|---|
+| 0% | Out — definitely not playing. |
+| 25% | Suspended or major doubt. |
+| 50% | Doubt. |
+| 75% | Likely to play, minor concern. |
+| Null / 100% | No issue flagged. (Not shown on this page.) |
+
+The page sorts by **most owned first** — the injury risks affecting the most managers surface at the top.
+
+## What each column shows
+
+- **Player** — name, club, position.
+- **Status** — the textual reason from FPL ("Knee injury", "Match fitness", "Suspension"), if provided.
+- **Chance** — the numeric percentage from the table above.
+- **Expected return** — the date FPL projects the player will be available, if known. Many injury statuses don't have a return date and show "—".
+- **Owned by** — count and chips for the affected managers in your league.
+- **News** — the latest news snippet from FPL's API, if available.
+
+## What to do with this
+
+Before every deadline:
+
+1. **Scan the top of the table.** The most-owned doubts are where the league's collective risk sits.
+2. **Check the chance percentage.** A 75% is usually fine; a 50% is a coin flip; a 25% or 0% requires action.
+3. **Plan substitutions.** If your captain is on the list, set the vice. If a starter is on the list, check whether your bench has a viable autosub candidate.
+4. **Don't transfer reflexively.** A short-term knock often clears by the next deadline. Use [Transfers](/help/reading-the-app/transfers) and [Regret](/help/reading-the-app/regret) to gut-check whether you transfer in-and-out of injured players too often.
+
+<Callout type="warning" title="The data lags real news">
+  FPL updates its API on Thursdays and Fridays before each gameweek. The flag for a player who picks up a knock in a Saturday match probably won't appear here until the following Thursday at the earliest. For real-time injury news, follow the club's media channels.
+</Callout>

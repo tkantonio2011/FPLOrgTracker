@@ -1,0 +1,62 @@
+---
+title: Audit log
+audience: admin
+summary: Every administrative action in your league, who did it, and when. Read-only.
+lastUpdated: 2026-05-18
+featurePagePath: /l/[leagueSlug]/admin/audit
+---
+
+The Audit Log is the immutable record of every administrative action in your league. Settings changes, member edits, role promotions, invitations issued, digests sent, suspensions imposed — they all appear here with the actor, the target, the timestamp, and a JSON diff of what changed.
+
+<AnnotatedImage src="audit-log/table.png" caption="The Audit Log table sorted newest-first, with action, actor, and timestamp columns." />
+
+## What's logged
+
+Every mutation that goes through a `requireLeagueAdmin` or `requireSuperAdmin` authorisation gate writes an `AuditEvent`. Read-only operations (viewing standings, opening the audit log itself) don't produce events.
+
+Examples of what you'll see:
+
+| Action | When it appears |
+|---|---|
+| `league.updated` | Settings page Save — includes before/after diff per changed field. |
+| `membership.role_changed` | Promoting / demoting a member. |
+| `membership.created` | An invitation accepted, a member synced from FPL, a manual add. |
+| `membership.deactivated` | A member marked inactive or hard-removed. |
+| `invitation.issued` | Invite-by-email button clicked. |
+| `invitation.revoked` | Cancel-invitation button clicked. |
+| `digest.sent` | Send-digest button clicked, with recipient count. |
+| `league.suspended` / `league.reinstated` | Super Admin actions. Visible because they affect your league. |
+| `migration.completed` | One-time entry from the initial 002 multi-league migration. |
+
+## What's in each row
+
+- **Timestamp** — ISO 8601 UTC.
+- **Actor** — the email of the user who performed the action, OR `migration` for the one-time platform migration entries, OR `system` for auto-actions like FPL sync runs.
+- **Action** — the dotted-namespace action key.
+- **Target kind / id** — what the action affected (e.g. `league:abc123`, `membership:def456`).
+- **Details** — JSON payload with whatever the action recorded. For `league.updated` this is a before/after diff per changed field; for `invitation.issued` it's the recipient email and role.
+
+## Filtering and search
+
+The page supports:
+
+- **Filter by action** — show only `league.updated` to audit settings changes, or only `digest.sent` to count weekly sends.
+- **Filter by actor** — show only actions taken by a specific admin email.
+- **Date range** — start / end timestamps.
+- **Full-text search** — matches against the JSON `details` blob.
+
+## Why this exists
+
+For leagues with multiple admins, the audit log is the source of truth when "who changed X" comes up. It's the only mechanism that connects mutations to actors with a timestamp. Without it, mutations are anonymous in retrospect.
+
+For single-admin leagues, the log is mostly self-incrimination — it's a record of what you did and when. Still useful for "did I send the digest yet this week" type questions.
+
+<Callout type="note" title="Audit events are append-only">
+  You cannot delete or edit an audit event. If a bad event was logged (e.g. you accidentally promoted the wrong person), the corrective action also gets logged. The trail is complete by design — it's safe to share screenshots without redaction concerns.
+</Callout>
+
+## What the audit log does NOT contain
+
+- **Page views** — no read-action logging. Visiting the standings page or reading this manual doesn't produce events.
+- **API requests** — the audit is at the action level, not the HTTP level. One Save click that updates three fields = one `league.updated` event, not three.
+- **Member-facing actions** — when a member transfers a player or changes their captain, that happens on the FPL side. The audit log only sees app-level admin actions.

@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useLeague } from "@/components/league/LeagueProvider";
 import {
   LineChart,
   Line,
@@ -101,14 +102,15 @@ function CustomTooltip({ active, payload, label, managers, colourMap }: any) {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function PointsRaceChart({ currentGw }: { currentGw?: number }) {
+  const { league } = useLeague();
   const { data, isLoading } = useQuery<LeagueHistoryData>({
-    queryKey: ["league-history"],
-    queryFn: () =>
-      fetch("/api/league-history").then(async (r) => {
-        const json = await r.json();
-        if (!r.ok) throw json;
-        return json;
-      }),
+    queryKey: ["league-history", league.id],
+    queryFn: async () => {
+      const r = await fetch(`/api/leagues/${league.id}/league-history`);
+      const body = (await r.json()) as { success: boolean; data?: LeagueHistoryData; error?: string };
+      if (!r.ok || !body.success || !body.data) throw new Error(body.error ?? "League history failed");
+      return body.data;
+    },
     staleTime: 300_000,
     retry: false,
   });

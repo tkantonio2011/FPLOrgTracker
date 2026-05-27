@@ -1,0 +1,54 @@
+---
+title: Agony Index
+audience: member
+summary: A composite misfortune score that rolls bench waste, transfer hits, captain blanks, and gameweek suffering into a single leaderboard nobody wants to top.
+lastUpdated: 2026-05-18
+featurePagePath: /l/[leagueSlug]/agony
+relatedTopics:
+  - /help/reading-the-app/bench-waste
+  - /help/reading-the-app/regret
+---
+
+The Agony Index is the dark mirror of the Standings page. It ranks managers not by points scored but by points wasted — and weights the different kinds of waste so the leaderboard reflects who has suffered most.
+
+<AnnotatedImage src="agony/overview.png" caption="The Agony Index leaderboard with stacked-bar visualisation showing each manager's pain by component." />
+
+## The formula
+
+```
+Agony = Bench points wasted
+      + Points paid in transfer hits  
+      + Sum of (captain ≤ 3 weeks × 6)
+      + Sum of (your GW score below league average)
+```
+
+Each component contributes to the total. The mix matters as much as the total — two managers can have the same agony score with completely different stories underneath.
+
+## Reading the stacked bar
+
+Above the leaderboard, the page shows a horizontal stacked bar per manager, with each segment colour-coded by component:
+
+- **Slate** — bench points wasted
+- **Amber** — transfer hits
+- **Red** — captain blanks
+- **Purple** — below-average gameweek suffering
+
+The longest bar is at the top. The legend shows the league-wide total for each component so you can see where your collective league pain comes from.
+
+## Per-manager breakdown
+
+Below the leaderboard, each manager has a card showing:
+
+- Their agony rank and total
+- A breakdown of each component
+- Their worst single-GW incident in each category — "GW 12 — bench scored 22", "GW 19 — Salah captained for 2 points", "GW 7 — minus 8 transfer hit, gained 1 point"
+
+## What it's good for
+
+- **Identifying habits** — a manager with high bench waste but low transfer hits is a "set-and-forget who picks the wrong starters". A manager with the opposite is a "constant tinkerer". Both bad, both diagnosable.
+- **Reading the league's collective pain** — the stacked-bar visualisation tells you whether your league is a transfer-hit-heavy league or a bench-waste-heavy one. Useful for designing house rules.
+- **Bragging rights** — being top of the Standings AND bottom of the Agony Index is the cleanest possible season. Being bottom of Standings AND top of Agony is, well, the wooden spoon plus.
+
+<Callout type="note" title="Below-average suffering ≠ a single bad week">
+  The "below-average GW suffering" component only counts each GW once per manager. If you scored 60 in a week when the league averaged 65, that's 5 agony points from that week. It's not a cumulative-deficit metric.
+</Callout>

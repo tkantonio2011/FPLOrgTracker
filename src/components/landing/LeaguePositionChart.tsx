@@ -5,6 +5,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   Legend, ResponsiveContainer,
 } from "recharts";
+import { useLeague } from "@/components/league/LeagueProvider";
 
 interface Manager {
   managerId: number;
@@ -15,6 +16,12 @@ interface Manager {
 interface LeagueHistoryData {
   managers: Manager[];
   memberCount: number;
+}
+
+interface ApiEnvelope<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
 }
 
 // Distinct colours that work on a white background
@@ -61,14 +68,15 @@ function CustomTooltip({ active, payload, label }: any) {
 }
 
 export function LeaguePositionChart() {
+  const { league } = useLeague();
   const { data, isLoading } = useQuery<LeagueHistoryData>({
-    queryKey: ["league-history"],
-    queryFn: () =>
-      fetch("/api/league-history").then(async (r) => {
-        const json = await r.json();
-        if (!r.ok) throw json;
-        return json;
-      }),
+    queryKey: ["league-history", league.id],
+    queryFn: async () => {
+      const r = await fetch(`/api/leagues/${league.id}/league-history`);
+      const body = (await r.json()) as ApiEnvelope<LeagueHistoryData>;
+      if (!r.ok || !body.success || !body.data) throw new Error(body.error ?? "League history failed");
+      return body.data;
+    },
     staleTime: 300_000,
     retry: false,
   });

@@ -1,0 +1,37 @@
+---
+title: Switching between leagues
+audience: both
+summary: If you're in more than one league, the League Switcher at the top of the sidebar moves you between them while keeping your context.
+lastUpdated: 2026-05-18
+featurePagePath: /leagues
+relatedTopics:
+  - /help/getting-started/welcome
+---
+
+The platform supports multiple leagues per account. If you're a member or admin of more than one, you can flip between them without signing out.
+
+<AnnotatedImage src="switching-leagues/dropdown.png" caption="The LeagueSwitcher dropdown. The league you're currently viewing is at the top with a checkmark." />
+
+## How to switch
+
+Click the league name at the top of the sidebar. A dropdown opens showing every active league you belong to. Selecting one navigates you to the equivalent page in that league.
+
+For example: if you're on `/l/sandsharks/standings` and pick "Sea Eagles" from the dropdown, you'll land at `/l/sea-eagles/standings`. Page context is preserved.
+
+## Admin context is preserved too
+
+If you're a League Admin in **multiple** leagues, the switcher behaves more cleverly. From `/l/sandsharks/admin/members`, picking "Sea Eagles" — where you're also an admin — lands you at `/l/sea-eagles/admin/members`, **not** the standings page. You stay in the same admin sub-shell across leagues.
+
+If you switch to a league where you're only a member (not an admin), the switcher drops you off at `/standings` for that league instead.
+
+## When you only have one league
+
+If your account belongs to exactly one active league, there's no switcher — the sidebar just shows that league's name. You'll only ever see the switcher once a second active membership exists.
+
+## Where the chooser shows up
+
+After sign-in, if you belong to more than one league, you'll land on `/leagues` — a one-time chooser with all your leagues partitioned into "Leagues you administer" and "Leagues you're a member of" (if you have both). After you pick one, you go straight into it; the in-app switcher takes over from there.
+
+<Callout type="note" title="Sharing URLs between members">
+  Every URL includes a league slug. Sharing `/l/sandsharks/h2h` with another Sandsharks member opens correctly for them. Sharing it with someone who isn't in Sandsharks returns 404 — deliberate non-disclosure; we don't reveal that the league exists.
+</Callout>

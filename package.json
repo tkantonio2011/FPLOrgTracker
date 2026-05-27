@@ -1,35 +1,49 @@
 {
   "name": "fpl-org-tracker",
-  "version": "1.6.4",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "release": "node scripts/release.js",
+    "prebuild": "tsx scripts/build-manual-index.ts",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest",
     "test:ui": "vitest --ui",
+    "test:integration": "vitest --config vitest.integration.config.ts",
+    "test:e2e:setup": "tsx tests/e2e/setup-db.ts",
+    "test:e2e": "npm run test:e2e:setup && playwright test",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "db:seed": "tsx prisma/migrations/002_multi_league/seed.ts"
   },
   "dependencies": {
+    "@mdx-js/loader": "^3.1.1",
+    "@mdx-js/react": "^3.1.1",
+    "@next/mdx": "^16.2.6",
+    "@tailwindcss/typography": "^0.5.19",
     "@tanstack/react-query": "^5.45.0",
     "@tanstack/react-query-devtools": "^5.45.0",
     "@types/nodemailer": "^8.0.0",
+    "fuse.js": "^7.3.0",
+    "gray-matter": "^4.0.3",
     "groq-sdk": "^1.1.2",
     "next": "^14.2.5",
     "nodemailer": "^8.0.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "recharts": "^2.12.7"
+    "recharts": "^2.12.7",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.48.0",
     "@prisma/client": "^5.22.0",
     "@testing-library/jest-dom": "^6.4.6",
     "@testing-library/react": "^16.0.0",
     "@testing-library/user-event": "^14.5.2",
+    "@types/mdx": "^2.0.13",
     "@types/node": "^20.14.10",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
@@ -39,6 +53,7 @@
     "postcss": "^8.4.39",
     "prisma": "^5.22.0",
     "tailwindcss": "^3.4.6",
+    "tsx": "^4.19.2",
     "typescript": "^5.5.3",
     "vitest": "^1.6.0"
   }

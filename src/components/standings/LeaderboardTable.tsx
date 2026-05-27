@@ -24,12 +24,12 @@ interface ManagerTitle {
 
 interface LeaderboardTableProps {
   standings: StandingEntry[];
-  orgAverageGwPoints: number;
+  leagueAverageGwPoints: number;
   globalAverageGwPoints: number;
   titles?: Map<number, ManagerTitle>;
 }
 
-export function LeaderboardTable({ standings, orgAverageGwPoints, globalAverageGwPoints, titles }: LeaderboardTableProps) {
+export function LeaderboardTable({ standings, leagueAverageGwPoints, globalAverageGwPoints, titles }: LeaderboardTableProps) {
   return (
     <div className="bg-white border border-slate-200/80 rounded-xl overflow-hidden shadow-card">
       {/* Column header */}
@@ -91,8 +91,8 @@ export function LeaderboardTable({ standings, orgAverageGwPoints, globalAverageG
       {standings.length > 0 && (
         <div className="border-t border-slate-100 bg-slate-50/60 px-4 py-2.5 flex gap-6 text-xs text-slate-400">
           <span>
-            Org avg:{" "}
-            <strong className="text-slate-600 tabular">{orgAverageGwPoints} pts</strong>
+            League avg:{" "}
+            <strong className="text-slate-600 tabular">{leagueAverageGwPoints} pts</strong>
           </span>
           <span>
             FPL avg:{" "}

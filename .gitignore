@@ -13,6 +13,8 @@ build/
 # Note: .env is committed — it contains only the safe dev DATABASE_URL default
 .env.local
 .env.production
+.env.uat
+.env.uat.local
 .env.development.local
 .env.test.local
 .env.production.local
@@ -21,6 +23,8 @@ build/
 *.db
 *.db-journal
 *.db-wal
+*.db-shm
+*.db.pre-*
 
 # Logs
 *.log
@@ -53,3 +57,11 @@ next-env.d.ts
 coverage/
 /env.production
 /env.local
+
+# Playwright
+test-results/
+playwright-report/
+tests/e2e/.fixture.json
+
+# Scratchpad — local-only experiments, screenshots, throwaway files
+scratch/

@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useLeague } from "@/components/league/LeagueProvider";
 
 interface PainStats {
   currentGw: number;
@@ -12,6 +13,12 @@ interface PainStats {
   worstBenchGw: { managerName: string; pts: number; gw: number } | null;
   biggestHit:   { managerName: string; cost: number; gw: number } | null;
   painfulGw:    { gw: number; totalSuffering: number } | null;
+}
+
+interface ApiEnvelope<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
 }
 
 // ── Stat tile ─────────────────────────────────────────────────────────────────
@@ -57,19 +64,20 @@ function SkeletonTile() {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function PainCounter() {
+  const { league } = useLeague();
   const { data, isLoading, isError } = useQuery<PainStats>({
-    queryKey: ["pain-stats"],
+    queryKey: ["pain-stats", league.id],
     queryFn: async () => {
-      const r = await fetch("/api/pain-stats");
-      const json = await r.json();
-      if (!r.ok) throw json;
-      return json;
+      const r = await fetch(`/api/leagues/${league.id}/pain-stats`);
+      const body = (await r.json()) as ApiEnvelope<PainStats>;
+      if (!r.ok || !body.success || !body.data) throw new Error(body.error ?? "Pain stats failed");
+      return body.data;
     },
     staleTime: 300_000,
     retry: false,
   });
 
-  // Silently absent if org not configured
+  // Silently absent if data unavailable
   if (isError) return null;
 
   // Human-readable hit cost: each hit = 4 pts
@@ -111,7 +119,7 @@ export function PainCounter() {
         {
           emoji: "📉",
           value: String(data.belowAvgGws),
-          label: "below-average GWs across the org",
+          label: "below-average GWs across the league",
           footnote: `across ${data.managersCount} managers · GW1–GW${data.currentGw}`,
         },
       ]
@@ -132,7 +140,7 @@ export function PainCounter() {
           <p className="text-[11px] text-white/40 font-medium">
             {data
               ? `GW1–GW${data.currentGw} · ${data.managersCount} managers · cumulative suffering`
-              : "Loading org-wide damage report…"}
+              : "Loading league-wide damage report…"}
           </p>
         </div>
       </div>

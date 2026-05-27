@@ -4,14 +4,13 @@ const version: string = pkg.version;
 
 interface AppShellProps {
   children: React.ReactNode;
-  orgName?: string;
   currentGw?: number;
 }
 
-export function AppShell({ children, orgName, currentGw }: AppShellProps) {
+export function AppShell({ children, currentGw }: AppShellProps) {
   return (
     <div className="flex h-screen overflow-hidden bg-surface-muted font-sans">
-      <ShellClient version={version} orgName={orgName} currentGw={currentGw}>
+      <ShellClient version={version} currentGw={currentGw}>
         {children}
       </ShellClient>
     </div>

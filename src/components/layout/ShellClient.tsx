@@ -8,11 +8,10 @@ import { Nav } from "./Nav";
 interface ShellClientProps {
   children: React.ReactNode;
   version: string;
-  orgName?: string;
   currentGw?: number;
 }
 
-export function ShellClient({ children, version, orgName, currentGw }: ShellClientProps) {
+export function ShellClient({ children, version, currentGw }: ShellClientProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const pathname = usePathname();
 
@@ -52,11 +51,7 @@ export function ShellClient({ children, version, orgName, currentGw }: ShellClie
 
       {/* Main area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Nav
-          orgName={orgName}
-          currentGw={currentGw}
-          onMenuToggle={() => setDrawerOpen((o) => !o)}
-        />
+        <Nav currentGw={currentGw} onMenuToggle={() => setDrawerOpen((o) => !o)} />
         <main className="flex-1 p-4 md:p-6 overflow-y-auto animate-fade-in">
           {children}
         </main>

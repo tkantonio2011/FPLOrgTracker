@@ -1,0 +1,42 @@
+---
+title: Accepting an invitation
+audience: both
+summary: You received an invitation email from your league admin. Here's what to do with it.
+lastUpdated: 2026-05-18
+relatedTopics:
+  - /help/getting-started/magic-link
+---
+
+When a League Admin invites you, you'll receive an email containing a unique acceptance link. Clicking it takes you to a page that confirms which league you're joining, optionally collects your FPL Manager ID, and signs you in.
+
+<AnnotatedImage src="accepting-an-invitation/page.png" caption="The invitation acceptance page. The league logo and name are shown so you can confirm you're joining the right league." />
+
+## The flow
+
+<Steps>
+  <Step title="Click the invitation link">
+    The email has a single "Accept invitation" button. Clicking it opens `/invitations/<token>` in your browser.
+  </Step>
+  <Step title="Confirm and supply your Manager ID (if needed)">
+    The page shows the league name + logo and your role (member or admin). If your league admin didn't pre-link your FPL Manager ID, you'll be asked for it now. You can find your Manager ID by visiting [your FPL points page](https://fantasy.premierleague.com/my-team) and copying the number from the URL.
+  </Step>
+  <Step title="Click the Accept button">
+    Accepting creates your account if you don't already have one, attaches the membership to your account, signs you in, and lands you on the league's standings page.
+  </Step>
+</Steps>
+
+## How long the invitation lives
+
+Invitations are **single-use** and expire **7 days** after they're issued. If you miss the window, the link will tell you it's expired and ask you to contact your league admin for a fresh invitation.
+
+<Callout type="warning" title="Don't share your invitation link">
+  An invitation link is single-use, but it doesn't verify *who* clicked it. If you forward the email and someone else clicks first, they take your spot. Open it on a device only you have access to.
+</Callout>
+
+## What if you already have an account?
+
+If the email matches an existing UserAccount, accepting the invitation just attaches the new membership to your existing account. Next time you sign in, the LeagueSwitcher will show the new league alongside any you already had.
+
+## What if your league admin made a mistake?
+
+If the email address on the invitation is wrong (e.g. you should be using your work email but the invitation went to a personal address), don't accept it. Ask the admin to revoke the invitation and issue a new one to the correct email. Accepting under the wrong email creates a UserAccount under that wrong email, which is fixable but annoying.

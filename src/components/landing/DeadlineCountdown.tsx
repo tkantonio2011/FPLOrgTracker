@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLeague } from "@/components/league/LeagueProvider";
 
 interface Gameweek {
   id: number;
@@ -15,6 +16,12 @@ interface Gameweek {
 interface GameweeksData {
   currentGameweek: number;
   gameweeks: Gameweek[];
+}
+
+interface ApiEnvelope<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
 }
 
 interface TimeLeft {
@@ -52,9 +59,15 @@ function formatDeadline(iso: string) {
 }
 
 export function DeadlineCountdown() {
+  const { league } = useLeague();
   const { data } = useQuery<GameweeksData>({
-    queryKey: ["gameweeks"],
-    queryFn: () => fetch("/api/gameweeks").then((r) => r.json()),
+    queryKey: ["gameweeks", league.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${league.id}/gameweeks`);
+      const body = (await res.json()) as ApiEnvelope<GameweeksData>;
+      if (!res.ok || !body.success || !body.data) throw new Error(body.error ?? "Gameweeks failed");
+      return body.data;
+    },
     staleTime: 300_000,
   });
 

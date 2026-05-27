@@ -1,0 +1,45 @@
+---
+title: Fixtures
+audience: member
+summary: The next five gameweeks of fixtures, sorted by team, with FPL difficulty ratings and live scores.
+lastUpdated: 2026-05-18
+featurePagePath: /l/[leagueSlug]/fixtures
+---
+
+The Fixtures page is your transfer-planning surface. It shows the next five upcoming gameweeks for every Premier League team in a single grid, colour-coded by FPL's difficulty rating, so you can see at a glance who has the kindest run-in.
+
+<AnnotatedImage src="fixtures/overview.png" caption="The Fixtures grid — teams on the y-axis, the next five GWs on the x-axis. Green cells are easy fixtures; red are hard." />
+
+## How to read the grid
+
+- **Rows** — every Premier League team, sorted by their current league position.
+- **Columns** — the next five gameweeks starting from the current one.
+- **Cells** — the opponent + (H) for home / (A) for away, on a coloured background.
+
+The colour scale matches FPL's official difficulty rating (FDR):
+
+| Rating | Colour | Meaning |
+|---|---|---|
+| 1 (easiest) | Deep green | Should beat them comfortably |
+| 2 | Light green | Favourites |
+| 3 | Grey | Even matchup |
+| 4 | Light red | Tough fixture |
+| 5 (hardest) | Deep red | Title-contender opponent away |
+
+## Live scores
+
+During an in-progress gameweek, the current GW column shows live scores instead of fixture difficulty. Final scores remain on the grid for ~24 hours after the gameweek ends before reverting to the difficulty-rating view.
+
+The page polls FPL for live scores on a 60-second cycle while fixtures are in progress. The "refreshing…" pill in the page header surfaces when the cached data is stale.
+
+## Double and blank gameweeks
+
+When a team plays twice in a single GW (a "double gameweek"), both opponents appear in the same cell. When a team has no fixture (a "blank gameweek"), the cell is empty and styled differently to flag it. These are the weeks where chips matter most:
+
+- **Bench Boost** in a double-gameweek = 11 → 15 players × 2 fixtures = a lot of upside.
+- **Free Hit** in a blank-gameweek = field a full team of players who DO have a fixture.
+- **Wildcard** before a stretch of doubles = restructure to lean into the upside.
+
+<Callout type="tip" title="The grid is a planning tool, not a prediction">
+  FDR is a rough guide. It doesn't know about injuries, suspensions, or recent form. Use it to spot patterns, not to make absolute decisions.
+</Callout>

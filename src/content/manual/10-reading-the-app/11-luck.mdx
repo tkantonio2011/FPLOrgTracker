@@ -1,0 +1,47 @@
+---
+title: Luck Ranking
+audience: member
+summary: Separates skill from luck by comparing your actual gameweek scores to a model of what you "should" have scored.
+lastUpdated: 2026-05-18
+featurePagePath: /l/[leagueSlug]/luck
+---
+
+The Luck Ranking tries to answer the most contentious question in FPL: am I good or am I lucky? It does this by building a per-manager expected-points baseline (xPts) from the underlying FPL data — minutes, expected goals/assists, bonus probability — and comparing your actual points against that expectation.
+
+<AnnotatedImage src="luck/overview.png" caption="The Luck Ranking page comparing actual vs. expected points per manager." />
+
+## What the ranking shows
+
+Each manager has three numbers and a delta:
+
+- **Actual points** — your real season total.
+- **Expected points (xPts)** — what your team should have scored based on the underlying chances created, minutes played, and shot quality.
+- **Δ** — actual minus expected. Positive means you got more than your team's underlying performance suggested (you've been lucky); negative means you got less (you've been unlucky).
+- **Luck rank** — 1 = luckiest, last = unluckiest. Independent of the Standings rank.
+
+The page sorts by Δ descending — luckiest manager at the top, unluckiest at the bottom.
+
+## How xPts is calculated
+
+For each player you own, in each gameweek:
+
+- Expected minutes from FPL's projected lineup data
+- Expected goals + assists from underlying shot quality (xG/xA)
+- Expected appearance, clean sheet, and goal-conceded contributions
+- Expected captain multiplier applied to your actual captain
+
+These get summed across your starting eleven (or 15 for Bench Boost weeks). Bonus is approximated from BPS expectation rather than awarded explicitly.
+
+This isn't a true model of FPL — it's a heuristic. But over a full season it's a much better signal of "how well did you pick" than total points alone, because points are noisy and xPts smooths the noise out.
+
+<Callout type="note" title="A high actual rank with low luck rank is a real flex">
+  If you're in the top 3 by points AND ranked 8th by luck (meaning you've been more unlucky than most), you're playing genuinely well. If you're top 3 by points and 1st by luck (meaning the dice landed in your favour all season), enjoy it while it lasts — that's regression to the mean waiting to happen.
+</Callout>
+
+## What the model can't see
+
+- **Differential picks** that work — if you correctly identified a low-owned player who outperformed his xPts, you'll appear lucky even though it was insight. Pure-stats models can't tell genius from variance.
+- **Chip timing** — playing your Bench Boost on the right double-gameweek is a skill the model rates as "lucky" because all 15 of your starters scored.
+- **Knowing when to take a hit** — a successful -4 for an injury replacement looks like luck to the model.
+
+So treat the Luck rank as a conversation starter, not a verdict.

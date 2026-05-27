@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 
 const TrophyIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -159,70 +160,147 @@ const ArmBandIcon = () => (
   </svg>
 );
 
+const LayersIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+    <polyline points="2 17 12 22 22 17"/>
+    <polyline points="2 12 12 17 22 12"/>
+  </svg>
+);
+
+const HelpIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+    <line x1="12" x2="12.01" y1="17" y2="17"/>
+  </svg>
+);
+
+interface MeMembershipForSidebar {
+  leagueId: string;
+  leagueSlug: string;
+  leagueName: string;
+  leagueLogoUrl: string | null;
+  role: "member" | "admin";
+  isActive: boolean;
+}
+interface MeResponseForSidebar {
+  memberships?: MeMembershipForSidebar[];
+}
+
+interface LeagueBadgeData {
+  name: string;
+  logoUrl: string | null;
+}
+
 interface NavItem {
-  href: string;
+  /** Path relative to the league shell (e.g. "/standings"). Resolved at render. */
+  path: string;
   label: string;
   icon: React.ReactNode;
   exact?: boolean;
+  /** Platform-level link — never gets the league prefix. */
+  platform?: boolean;
 }
 
 interface NavGroup {
-  label?: string; // undefined = no section header
+  label?: string;
   items: NavItem[];
 }
 
 const navGroups: NavGroup[] = [
   {
     items: [
-      { href: "/", label: "Home", icon: <HomeIcon />, exact: true },
+      { path: "/standings", label: "Home", icon: <HomeIcon /> },
     ],
   },
   {
     label: "Gameweek",
     items: [
-      { href: "/standings",  label: "Standings",   icon: <TrophyIcon /> },
-      { href: "/live",       label: "Live Points", icon: <ZapIcon /> },
-      { href: "/transfers",  label: "Transfers",   icon: <ArrowsIcon /> },
+      { path: "/standings", label: "Standings", icon: <TrophyIcon /> },
+      { path: "/live", label: "Live Points", icon: <ZapIcon /> },
+      { path: "/transfers", label: "Transfers", icon: <ArrowsIcon /> },
     ],
   },
   {
     label: "Season",
     items: [
-      { href: "/form",           label: "Form Table",   icon: <FlameIcon /> },
-      { href: "/season-stats",   label: "Season Stats", icon: <BarChartIcon /> },
-      { href: "/bench",          label: "Bench Waste",  icon: <BenchIcon /> },
-      { href: "/captain-history",label: "Captains",     icon: <StarIcon /> },
-      { href: "/h2h",            label: "H2H Battle",   icon: <SwordsIcon /> },
-      { href: "/regret",         label: "Transfer Regret", icon: <ReceiptIcon /> },
-      { href: "/agony",          label: "Agony Index",     icon: <FrownIcon /> },
-      { href: "/luck",           label: "Luck Ranking",    icon: <DiceIcon /> },
-      { href: "/captain-whatif", label: "Captain What-If", icon: <ArmBandIcon /> },
-      { href: "/wall-of-shame",  label: "Wall of Shame",  icon: <ShameIcon /> },
+      { path: "/form", label: "Form Table", icon: <FlameIcon /> },
+      { path: "/season-stats", label: "Season Stats", icon: <BarChartIcon /> },
+      { path: "/bench", label: "Bench Waste", icon: <BenchIcon /> },
+      { path: "/captain-history", label: "Captains", icon: <StarIcon /> },
+      { path: "/h2h", label: "H2H Battle", icon: <SwordsIcon /> },
+      { path: "/regret", label: "Transfer Regret", icon: <ReceiptIcon /> },
+      { path: "/agony", label: "Agony Index", icon: <FrownIcon /> },
+      { path: "/luck", label: "Luck Ranking", icon: <DiceIcon /> },
+      { path: "/captain-whatif", label: "Captain What-If", icon: <ArmBandIcon /> },
+      { path: "/wall-of-shame", label: "Wall of Shame", icon: <ShameIcon /> },
     ],
   },
   {
     label: "Scout",
     items: [
-      { href: "/fixtures",      label: "Fixtures",      icon: <CalendarIcon /> },
-      { href: "/ownership",     label: "Ownership",     icon: <UsersIcon /> },
-      { href: "/differentials", label: "Differentials", icon: <AlertIcon /> },
-      { href: "/player-status", label: "Injuries",      icon: <HeartPulseIcon /> },
+      { path: "/fixtures", label: "Fixtures", icon: <CalendarIcon />, platform: true },
+      { path: "/ownership", label: "Ownership", icon: <UsersIcon /> },
+      { path: "/differentials", label: "Differentials", icon: <AlertIcon /> },
+      { path: "/player-status", label: "Injuries", icon: <HeartPulseIcon /> },
     ],
   },
   {
     items: [
-      { href: "/admin", label: "Admin", icon: <SettingsIcon /> },
+      { path: "/help", label: "Help", icon: <HelpIcon />, platform: true },
+      { path: "/admin", label: "Admin", icon: <SettingsIcon /> },
     ],
   },
 ];
 
+const multiAdminItem: NavItem = {
+  path: "/my-admin",
+  label: "My admin leagues",
+  icon: <LayersIcon />,
+  platform: true,
+};
+
+function extractLeagueSlug(pathname: string | null): string | null {
+  if (!pathname) return null;
+  const match = pathname.match(/^\/l\/([^/]+)/);
+  return match?.[1] ?? null;
+}
+
+function resolveHref(item: NavItem, leagueSlug: string | null): string {
+  if (item.platform || leagueSlug === null) return item.path;
+  return `/l/${leagueSlug}${item.path}`;
+}
+
 export function Sidebar({ version, onClose }: { version: string; onClose?: () => void }) {
   const pathname = usePathname();
-  const router   = useRouter();
+  const router = useRouter();
+  const leagueSlug = extractLeagueSlug(pathname);
+
+  const { data: meData } = useQuery<MeResponseForSidebar | null>({
+    queryKey: ["me-leagues"],
+    queryFn: () => fetch("/api/auth/me").then((r) => (r.ok ? r.json() : null)),
+    staleTime: 60_000,
+  });
+  const memberships = meData?.memberships ?? [];
+  const adminMembershipCount = memberships.filter(
+    (m) => m.isActive && m.role === "admin",
+  ).length;
+  const showMultiAdminLink = leagueSlug !== null && adminMembershipCount >= 2;
+
+  // Resolve the current league's display info from the user's memberships.
+  // Super Admins viewing a league they don't belong to will have no match here
+  // and the badge will be hidden — acceptable for v1.
+  const activeMembership = leagueSlug
+    ? memberships.find((m) => m.leagueSlug === leagueSlug && m.isActive)
+    : null;
+  const leagueBadge: LeagueBadgeData | null = activeMembership
+    ? { name: activeMembership.leagueName, logoUrl: activeMembership.leagueLogoUrl }
+    : null;
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
+    router.push("/sign-in");
     router.refresh();
   }
 
@@ -233,14 +311,17 @@ export function Sidebar({ version, onClose }: { version: string; onClose?: () =>
   useEffect(() => {
     for (const group of navGroups) {
       if (!group.label) continue;
-      const hasActive = group.items.some((item) =>
-        item.exact ? pathname === item.href : pathname?.startsWith(item.href)
-      );
-      if (hasActive) { setOpenGroup(group.label); return; }
+      const hasActive = group.items.some((item) => {
+        const href = resolveHref(item, leagueSlug);
+        return item.exact ? pathname === href : pathname?.startsWith(href);
+      });
+      if (hasActive) {
+        setOpenGroup(group.label);
+        return;
+      }
     }
-    // Active page is Home or Admin — collapse everything
     setOpenGroup(null);
-  }, [pathname]);
+  }, [pathname, leagueSlug]);
 
   const toggleGroup = (label: string) =>
     setOpenGroup((prev) => (prev === label ? null : label));
@@ -254,7 +335,7 @@ export function Sidebar({ version, onClose }: { version: string; onClose?: () =>
             <span className="text-[#37003c] font-black text-sm leading-none">FPL</span>
           </div>
           <div className="flex-1">
-            <div className="text-white font-bold text-sm leading-tight">Organisation</div>
+            <div className="text-white font-bold text-sm leading-tight">Fantasy</div>
             <div className="text-white/50 text-xs">Tracker</div>
           </div>
           {/* Close button — mobile only */}
@@ -272,17 +353,60 @@ export function Sidebar({ version, onClose }: { version: string; onClose?: () =>
         </div>
       </div>
 
+      {/* League badge — visible when inside a league shell and a logo is configured */}
+      {leagueBadge?.logoUrl && (
+        <div className="px-5 py-3 border-b border-white/10 flex items-center gap-2.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={leagueBadge.logoUrl}
+            alt=""
+            className="w-7 h-7 rounded object-cover shrink-0 bg-white/5 border border-white/10"
+          />
+          <div
+            className="text-white/80 text-xs font-medium leading-tight truncate"
+            title={leagueBadge.name}
+          >
+            {leagueBadge.name}
+          </div>
+        </div>
+      )}
+
       {/* Navigation */}
       <nav className="flex-1 px-3 py-3 overflow-y-auto space-y-4">
         {navGroups.map((group, gi) => {
           const isCollapsed = group.label ? openGroup !== group.label : false;
-          // Safety net: always show items for the active page even mid-transition
-          const hasActive = group.items.some((item) =>
-            item.exact ? pathname === item.href : pathname?.startsWith(item.href)
-          );
+          const hasActive = group.items.some((item) => {
+            const href = resolveHref(item, leagueSlug);
+            return item.exact ? pathname === href : pathname?.startsWith(href);
+          });
+          // Inject the multi-admin link directly above the final per-league
+          // "Admin" item so admin-y things stay together.
+          const isAdminGroup =
+            group.items.length === 1 && group.items[0]?.path === "/admin";
+          const renderMultiAdminAbove = isAdminGroup && showMultiAdminLink;
+          const multiAdminActive =
+            renderMultiAdminAbove && pathname?.startsWith("/my-admin");
 
           return (
             <div key={gi} className="space-y-0.5">
+              {renderMultiAdminAbove && (
+                <Link
+                  href={multiAdminItem.path}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer ${
+                    multiAdminActive
+                      ? "bg-white/15 text-[#00ff87] shadow-[inset_0_1px_0_rgb(255_255_255/0.1)]"
+                      : "text-white/60 hover:bg-white/8 hover:text-white/90"
+                  }`}
+                >
+                  <span className={`shrink-0 transition-colors ${multiAdminActive ? "text-[#00ff87]" : "text-white/40"}`}>
+                    {multiAdminItem.icon}
+                  </span>
+                  {multiAdminItem.label}
+                  {multiAdminActive && (
+                    <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#00ff87]" />
+                  )}
+                </Link>
+              )}
               {group.label && (
                 <button
                   onClick={() => toggleGroup(group.label!)}
@@ -306,13 +430,12 @@ export function Sidebar({ version, onClose }: { version: string; onClose?: () =>
               )}
 
               {(!isCollapsed || hasActive) && group.items.map((item) => {
-                const isActive = item.exact
-                  ? pathname === item.href
-                  : pathname?.startsWith(item.href);
+                const href = resolveHref(item, leagueSlug);
+                const isActive = item.exact ? pathname === href : pathname?.startsWith(href);
                 return (
                   <Link
-                    key={item.href}
-                    href={item.href}
+                    key={item.path}
+                    href={href}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer ${
                       isActive
                         ? "bg-white/15 text-[#00ff87] shadow-[inset_0_1px_0_rgb(255_255_255/0.1)]"

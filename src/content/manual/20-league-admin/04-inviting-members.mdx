@@ -1,0 +1,61 @@
+---
+title: Inviting members by email
+audience: admin
+summary: Send a single-use magic-link to a new member so they can accept and sign in.
+lastUpdated: 2026-05-18
+featurePagePath: /l/[leagueSlug]/admin/members
+relatedTopics:
+  - /help/league-admin/editing-members
+  - /help/getting-started/accepting-an-invitation
+---
+
+Members who exist in your roster (either via [sync from FPL](/help/league-admin/syncing-members) or added manually) can't sign in until they have a UserAccount linked to their membership. The invitation flow creates that link.
+
+<AnnotatedImage src="inviting-members/form.png" caption="The invite-by-email form. Email + role + optional FPL Manager ID = a one-click invitation." />
+
+## The flow
+
+<Steps>
+  <Step title="Open the Members admin page">
+    Sidebar → Admin → Members. Above the member table, you'll see an "Invite a member" button.
+  </Step>
+  <Step title="Fill in the form">
+    - **Email** — the email address the invitation will go to.
+    - **Role** — "Member" or "Admin". You can promote later, so default to Member unless you specifically want to share admin privileges.
+    - **FPL Manager ID** (optional) — if you set this, the invitee skips the Manager ID field on the acceptance page. Use this when you already know which FPL manager they correspond to (e.g. they're already in your synced roster but have no email yet).
+  </Step>
+  <Step title="Click the Send invitation button">
+    The app creates an Invitation row, generates a single-use token valid for 7 days, and emails the link to the address you supplied. The audit log records the action.
+  </Step>
+  <Step title="Wait for the invitee">
+    They click the link, optionally fill in their Manager ID (if you didn't pre-supply it), and accept. Their UserAccount is created (or linked, if one already exists for that email), the LeagueMembership is created (or its UserAccount is set), and they land on the league's standings page.
+  </Step>
+</Steps>
+
+## Resending an invitation
+
+If the invitation expires or the recipient deletes the email, you can re-issue from the Members admin page. Each re-issue creates a fresh token; the old one becomes immediately invalid. The audit log records both the original issue and the re-issue.
+
+## Cancelling an invitation
+
+Pending invitations (sent but not accepted) appear in a separate section of the Members page. You can revoke them; revocation invalidates the token immediately. If the recipient clicks afterwards, they see "Invitation revoked" and are directed back to `/sign-in`.
+
+<Callout type="warning" title="Don't invite the same email twice in parallel">
+  If you issue two pending invitations to the same email, the first one accepted wins; the second becomes invalid. This is rarely a problem in practice but can be confusing if both invitations land in the inbox at once. Cancel the older one before issuing a new one.
+</Callout>
+
+## What can go wrong
+
+- **SMTP not configured** — the invitation is created but no email is sent. The page surfaces a "SMTP not configured" banner; ask a Super Admin to fix the environment variables. Until that's done, you can manually copy the token from the audit log and DM the link to the recipient.
+- **Email rejected by recipient's mail server** — rare; usually means their inbox is full or rejecting your sender domain. Ask them to whitelist your sender and try again.
+- **Recipient never receives** — typical spam-filter problem. Have them search their spam folder and mark the sender as safe.
+
+## Promoting a member to admin
+
+Edit the member from the Members page; flip the role from "member" to "admin"; save. The audit log records the change. The promoted member doesn't need to sign in again — their next page load picks up the new role.
+
+You can promote anyone who's already a member of your league. You can't promote someone who isn't yet a member — invite them first, then promote.
+
+## Demoting an admin to member
+
+Same flow in reverse. Demotion takes effect on the next page load. There must always be at least one admin per league — the platform won't let you demote the last admin.

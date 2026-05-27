@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useLeague } from "@/components/league/LeagueProvider";
 
 interface Highlight {
   text: string;
@@ -13,6 +14,12 @@ interface HighlightsData {
   currentGw: number;
 }
 
+interface ApiEnvelope<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
 const LEFT_BORDER: Record<string, string> = {
   positive: "border-l-emerald-400",
   negative: "border-l-red-400",
@@ -21,9 +28,15 @@ const LEFT_BORDER: Record<string, string> = {
 };
 
 export function WeeklyHighlights() {
+  const { league } = useLeague();
   const { data, isLoading } = useQuery<HighlightsData>({
-    queryKey: ["highlights"],
-    queryFn: () => fetch("/api/highlights").then((r) => r.json()),
+    queryKey: ["highlights", league.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${league.id}/highlights`);
+      const body = (await res.json()) as ApiEnvelope<HighlightsData>;
+      if (!res.ok || !body.success || !body.data) throw new Error(body.error ?? "Highlights failed");
+      return body.data;
+    },
     staleTime: 300_000,
   });
 

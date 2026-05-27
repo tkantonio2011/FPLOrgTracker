@@ -1,0 +1,52 @@
+---
+title: Differential Alerts
+audience: member
+summary: Low-owned players who scored big in the most recent gameweek — the players that decided the GW.
+lastUpdated: 2026-05-18
+featurePagePath: /l/[leagueSlug]/differentials
+relatedTopics:
+  - /help/reading-the-app/ownership
+---
+
+A differential is a player only some managers own. If they score big, they swing the gameweek. The Differential Alerts page surfaces the differentials that mattered most this gameweek — low-owned players who delivered.
+
+<AnnotatedImage src="differentials/overview.png" caption="The Differentials page — players, their GW points, their league ownership count, and the manager(s) who benefited." />
+
+## What's on the page
+
+The page is a table of differential picks from the most recent completed gameweek, sorted by impact (points × inverse ownership). Each row shows:
+
+- **Player** — name, club, position.
+- **GW points** — what they scored in the gameweek (before captain multiplier).
+- **Owned by** — count and percentage of league managers who owned them.
+- **Captained by** — managers who captained them (these are the big winners).
+- **Impact** — composite score combining points and rarity. Higher = bigger differential.
+
+The default filter shows players owned by 30% or fewer of the league. You can raise or lower that threshold with the slider at the top.
+
+## What "impact" means
+
+A 15-point haul from a player owned by 1 of 12 managers is more meaningful than a 15-point haul from a player owned by 11 of 12. The first case is one manager getting a unique 15 points; the second is the whole league getting roughly the same boost.
+
+The Impact column rewards rarity:
+
+```
+Impact = GW points × (1 − ownership fraction)
+```
+
+So:
+
+- 15 points, 8% ownership → ~13.8 impact
+- 15 points, 92% ownership → ~1.2 impact
+
+The same haul, vastly different effect on the league table.
+
+## How to use it
+
+- **Post-mortem** — at the end of a gameweek, scan the top of the table. The managers listed in "Captained by" or "Owned by" are the ones who gained relative ground this week.
+- **Transfer planning** — a differential that scored big two weeks running is a candidate for transfer in *before* their ownership rises. The window closes fast.
+- **Avoid the herd** — high-impact differentials are easier to spot when ownership is fragmented. If everyone owns the same 11 players, there are no differentials.
+
+<Callout type="tip" title="Watch the captain badge">
+  When a manager captains a low-owned differential and it pays off, they often jump multiple rank positions in a single GW. The "Captained by" column flags exactly when this is about to happen.
+</Callout>

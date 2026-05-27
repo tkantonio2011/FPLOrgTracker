@@ -1,0 +1,55 @@
+---
+title: Editing members
+audience: admin
+summary: Update a member's display name, team name, email, or points deduction. Remove or reactivate members.
+lastUpdated: 2026-05-18
+featurePagePath: /l/[leagueSlug]/admin/members
+---
+
+The Members page lists every member of your league with inline edit affordances for each row. Some fields apply to that league only; others propagate to every league the member belongs to.
+
+<AnnotatedImage src="editing-members/modal.png" caption="The edit-member modal showing display name, team name, email, and points-deduction fields." />
+
+## What's editable
+
+### Per-membership (only affects this league)
+
+- **Display name** — what shows in standings, the leaderboard, the digest. Defaults to whatever FPL returns; you can override.
+- **Team name** — the FPL team name. Defaults to whatever FPL returns; you can override (e.g. to censor an offensive name).
+- **Points deduction per gameweek** — a per-week penalty applied to this member in this league. House-rule mechanism for fining someone who misses a deadline, fails to send a digest, etc. Defaults to 0.
+- **Role** — Member or Admin. See [Inviting members](/help/league-admin/inviting-members) for the constraints.
+- **Active status** — Active or Inactive. Inactive members don't appear in standings but their data is preserved.
+
+### Cross-membership (affects every league the user is in)
+
+- **Email** — changing the email here changes it on the underlying UserAccount, which affects every league the user is a member of. Be deliberate — see the warning below.
+
+<Callout type="warning" title="Email changes are cross-league">
+  Updating a member's email rewires their entire account on the platform. If they're in three leagues, all three will now use the new email for magic-link sign-in. Confirm with the member before changing it, and prefer asking them to update it themselves via their profile (if/when that surface exists) over doing it from admin.
+</Callout>
+
+## Removing a member
+
+Two flavours:
+
+- **Soft remove (deactivate)** — flip Active to Inactive. The member disappears from standings but everything is preserved. You can reactivate later. This is the right choice if someone goes on a long break.
+- **Hard remove** — actually delete the LeagueMembership row. The member is gone from your league. Their UserAccount and any other league memberships are unaffected. The audit log records the removal.
+
+Hard remove is destructive in the sense that the in-league history (transfers, captain picks per GW) becomes inaccessible from your league's pages. The FPL data is still on FPL's servers — but the app no longer fetches it for this member. Reversing a hard remove is a re-invitation, not a reactivation.
+
+## Points deduction
+
+The points deduction is a per-week subtraction. Set it to 2, and every gameweek for this member is recorded with `actual − 2`. Set it back to 0 to stop deducting.
+
+Common uses:
+
+- A late-deadline penalty applied for the rest of the season ("you missed deadline = -2/wk for 5 weeks").
+- A house rule like "if you don't pay your league fee, -1/wk until you do".
+
+Deductions appear as a small badge on the member's standings row and are logged in the audit trail.
+
+## What you CAN'T edit
+
+- The member's FPL Manager ID. Once linked, the Manager ID is the connection to FPL's API; changing it would break their FPL history. If a member changes which FPL team they play, you have to hard-remove and re-invite them with the new Manager ID.
+- Anything about their FPL team selections (captain, transfers, chip usage). The app reads those from FPL; you can't write back.
+- Their data from other leagues they're in. Each LeagueMembership is separate; this page only edits this league's view.

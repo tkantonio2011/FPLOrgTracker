@@ -81,7 +81,8 @@ cat > /home/ec2-user/app/.env.local << 'ENV'
 NODE_ENV=production
 PORT=3000
 DATABASE_URL="file:/home/ec2-user/app/prisma/prod.db"
-# ADMIN_PIN=change-me
+# SESSION_SECRET=<a 32+ byte random string>
+# BOOTSTRAP_SUPER_ADMIN_EMAIL=you@example.com
 ENV
 
 chmod 600 /home/ec2-user/app/.env.local
