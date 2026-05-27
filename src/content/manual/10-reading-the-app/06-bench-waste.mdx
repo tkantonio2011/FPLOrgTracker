@@ -1,0 +1,43 @@
+---
+title: Bench Waste
+audience: member
+summary: A manager-by-gameweek heatmap of points left rotting on your bench.
+lastUpdated: 2026-05-18
+featurePagePath: /l/[leagueSlug]/bench
+relatedTopics:
+  - /help/reading-the-app/season-stats
+  - /help/reading-the-app/agony
+---
+
+The Bench Waste page surfaces the saddest stat in FPL: points your players scored while sitting on your bench, doing nothing for your team total. The page is a heatmap — managers as rows, gameweeks as columns — with each cell shaded by how many points were wasted that week.
+
+<AnnotatedImage src="bench-waste/overview.png" caption="The Bench Waste heatmap. Pale = clean week, deep red = significant waste." />
+
+## How to read the heatmap
+
+- **Cell colour intensity** goes pale gold → orange → deep red as bench points climb.
+- **Red outline** on a cell marks that manager's personal worst gameweek of the season.
+- **Total column** on the right is each manager's cumulative bench waste so far.
+- **Total row** at the bottom is the league's collective bench waste per gameweek. GW columns turn red when the league as a whole left a lot on the bench that week.
+
+Hover any cell to see the exact points wasted, the GW number, and the manager's name. On mobile, tap to reveal the same tooltip.
+
+## What counts as "wasted"
+
+Bench points wasted = points scored by a player on your bench whom you did NOT replace via an autosub. The FPL engine autosubs in a bench player when one of your starting eleven doesn't play (zero minutes); when that happens, those points are *not* wasted — you got them.
+
+So "wasted" specifically means:
+
+- Your bench player scored points
+- Your starting eleven all played at least one minute (or were captain/vice and got a captain rule)
+- Therefore, no autosub happened, and the bench points didn't count
+
+Bench Boost weeks count zero bench waste — everyone played.
+
+## Why this is the most painful page
+
+Bench waste compounds. Five points missed in GW 1 is annoying; the same five points missed every week is 200 by season's end. The cumulative column tells you the real cost of consistently choosing the wrong starters.
+
+<Callout type="warning" title="The worst bench GWs are not always the worst captain GWs">
+  A manager can win a gameweek and still leave 30 points on the bench. Don't confuse "high score" with "well-managed team" — the heatmap will tell you who's getting away with sloppy bench choices on a good week.
+</Callout>

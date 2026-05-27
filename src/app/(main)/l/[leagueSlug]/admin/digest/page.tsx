@@ -7,6 +7,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useLeague } from "@/components/league/LeagueProvider";
 
+import { HelpButton } from "@/components/manual/HelpButton";
 interface ConfigStatus {
   smtpConfigured: boolean;
   groqConfigured: boolean;
@@ -69,6 +70,7 @@ export default function LeagueAdminDigestPage() {
     <div className="space-y-5">
       <header>
         <h1 className="text-2xl font-bold text-slate-900">GW digest</h1>
+        <HelpButton topic="/help/league-admin/weekly-digest" />
         <p className="text-sm text-slate-500 mt-1">
           Send an AI-generated gameweek summary email to every active member of this league with
           an email on file. Cached per GW — repeat sends for the same GW skip Groq entirely.

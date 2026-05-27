@@ -24,6 +24,7 @@ import {
 } from "@/lib/validation";
 import { issueSignInToken } from "@/lib/auth/magic-link";
 import { sendMagicLink } from "@/lib/auth/email";
+import { appOrigin } from "@/lib/auth/origin";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -128,7 +129,7 @@ export async function PATCH(
     await db.leagueMembership.update({ where: { id: membership.id }, data: updates });
 
     if (emailMagicLinkPlaintext) {
-      const origin = req.nextUrl.origin;
+      const origin = appOrigin(req);
       const link = `${origin}/verify?token=${emailMagicLinkPlaintext.plaintext}`;
       await sendMagicLink(emailMagicLinkPlaintext.toEmail, link);
     }

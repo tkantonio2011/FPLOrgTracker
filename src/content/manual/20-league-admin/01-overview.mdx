@@ -1,0 +1,53 @@
+---
+title: League Admin overview
+audience: admin
+summary: What you can do as a League Admin, where it lives in the app, and the order to learn things in.
+lastUpdated: 2026-05-18
+featurePagePath: /l/[leagueSlug]/admin/settings
+relatedTopics:
+  - /help/league-admin/league-settings
+  - /help/league-admin/inviting-members
+  - /help/league-admin/weekly-digest
+---
+
+You're a League Admin — you can configure your league, manage who's in it, send the weekly digest, and review the audit trail. This page is your map.
+
+<AnnotatedImage src="admin-overview/dashboard.png" caption="The Admin sub-shell exposes four pages: Settings, Members, Digest, and Audit." />
+
+## What "League Admin" means
+
+You administer **one or more** leagues on this platform. The role grants you access to a per-league admin sub-shell at `/l/<your-slug>/admin/...` with four pages:
+
+- **Settings** — name, slug, logo, mini-league ID, and the digest prompt.
+- **Members** — sync from FPL, invite by email, edit individual member details.
+- **Digest** — send the weekly GW summary email to your league.
+- **Audit log** — every administrative action that has happened in your league, who did it, when.
+
+You do NOT have access to:
+
+- Platform-level admin (creating new leagues, suspending leagues, cross-league member views) — that's the Super Admin's purview.
+- The admin sub-shells of leagues you don't administer.
+- Any FPL system function (you can't take a hit on someone's team, you can't change their captain).
+
+## Where to start
+
+If you've just been promoted:
+
+1. **[League Settings](/help/league-admin/league-settings)** — set the league name, upload a logo, paste your FPL mini-league ID. This is the one-time setup that makes everything else work.
+2. **[Syncing members](/help/league-admin/syncing-members)** — pull every member of your mini-league into the app's roster.
+3. **[Inviting members](/help/league-admin/inviting-members)** — turn those roster entries into signed-in users by inviting them by email.
+
+After that, the operational work is:
+
+- **[Sending the weekly digest](/help/league-admin/weekly-digest)** — once per week, ideally after every fixture finishes.
+- **[Reading the audit log](/help/league-admin/audit-log)** — only when you need to know "who changed X and when".
+
+## The multi-admin entry point
+
+If you admin **more than one** league, the sidebar shows a "My admin leagues" link in addition to the per-league "Admin" sub-shell. That link goes to `/my-admin`, where you get a list of every league you administer with deep-links straight into each one's sub-pages.
+
+The [LeagueSwitcher](/help/getting-started/switching-leagues) also helps here — if you're on `/l/A/admin/members` and switch to League B (where you're also admin), you land at `/l/B/admin/members`, not the standings page. Admin context is preserved across switches.
+
+<Callout type="tip" title="Most admin tasks should not happen weekly">
+  Settings + syncing + invitations are mostly one-time setup. The only routine admin task is sending the digest (and even that can be skipped some weeks). If you're touching admin pages every day, something's wrong — flag it to a Super Admin.
+</Callout>

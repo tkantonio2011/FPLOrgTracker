@@ -1,0 +1,63 @@
+---
+title: League settings
+audience: admin
+summary: Name, slug, logo, mini-league ID, digest prompt — every league-level configuration the platform exposes.
+lastUpdated: 2026-05-18
+featurePagePath: /l/[leagueSlug]/admin/settings
+relatedTopics:
+  - /help/league-admin/syncing-members
+  - /help/league-admin/weekly-digest
+---
+
+The League Settings page is your league's identity and integration layer. It's where you set the human-readable name, the URL slug, the optional logo, the FPL mini-league ID that powers member sync, and the AI tone prompt that flavours the weekly digest.
+
+<AnnotatedImage src="league-settings/form.png" caption="The League Settings form. Each field has a tooltip explaining its effect on the rest of the app." />
+
+## The fields
+
+### Name
+
+The human-readable name of your league — shown in the sidebar, on every email, on the invitation acceptance page, on the league chooser. Keep it short (≤60 chars) and recognisable.
+
+### Slug
+
+The URL-safe identifier for your league. Appears in every URL: `/l/<slug>/standings`. Allowed: lowercase letters, digits, hyphens. Must be unique across the platform.
+
+<Callout type="warning" title="Renaming the slug breaks old links">
+  When you change the slug, the old one is preserved in a redirect table so existing bookmarks keep working — old links 308 to the new slug automatically. But anything that hard-codes the old slug (e.g. someone's local notes) will need updating. Change slugs sparingly.
+</Callout>
+
+### Logo URL
+
+A URL to a logo image. If set, the logo appears:
+
+- In the sidebar under the platform brand block (a small thumbnail next to the league name).
+- On the invitation acceptance page, so invitees can confirm they're joining the right league.
+
+If you don't set one, those surfaces fall back gracefully (no badge). PNG or JPG works; recommended size 256×256 or larger, served over HTTPS.
+
+### Mini-league ID
+
+The numeric ID of your FPL classic-format mini-league. Find it in the URL on the official FPL site: `https://fantasy.premierleague.com/leagues/<this number>/standings/c`.
+
+This ID is what enables the "Sync members" action on the Members page — without it, syncing fails because the app doesn't know which FPL mini-league to fetch from.
+
+The platform enforces uniqueness — one mini-league can only be linked to one app-level League at a time. If you try to set a mini-league ID that's already linked elsewhere, you'll get a 409 error.
+
+### Digest prompt
+
+Optional free-text prompt that customises the AI tone of the weekly digest email. Default: a neutral, friendly tone. Set it to something like "Write like a deadpan pub landlord" or "Cricket-commentary style, formal English" and the AI will adjust the manager-by-manager narratives accordingly.
+
+Empty is fine. The digest still sends; it just uses the default tone.
+
+## What happens on save
+
+Every Save writes an `AuditEvent` showing the before/after diff for each changed field. Other admins (if you have more than one) can see exactly what changed and when on the [Audit log](/help/league-admin/audit-log).
+
+If you changed the slug, a `LeagueSlugHistory` row is created automatically so the old URL keeps working. No action required from you.
+
+## What you CAN'T change here
+
+- **Membership** — managed on the [Members page](/help/league-admin/inviting-members).
+- **Active / suspended status** — only Super Admins can suspend or reinstate.
+- **Migration of the league to a different platform tenant** — out of scope; ask a Super Admin.

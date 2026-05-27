@@ -1,0 +1,49 @@
+---
+title: Standings
+audience: member
+summary: The home leaderboard. Total points, gameweek points, rank, and rank-change for every member of your league.
+lastUpdated: 2026-05-18
+featurePagePath: /l/[leagueSlug]/standings
+relatedTopics:
+  - /help/reading-the-app/live-points
+  - /help/reading-the-app/form-table
+---
+
+Standings is your league's leaderboard — every member ranked by total points with their latest gameweek score, captain pick, chip usage, and rank-change indicators.
+
+<AnnotatedImage src="standings/overview.png" caption="The Standings page. Every member appears as a row; the leader is at the top." />
+
+## What each column means
+
+| Column | What it shows |
+|---|---|
+| **#** | Current rank in the league. Rank 1 is the leader by total points. |
+| **▲ / ▼** | Rank change since the previous gameweek. Green up-arrow = you climbed; red down-arrow = you dropped. |
+| **Manager / Team** | The member's display name and FPL team name. Click the name to open their member profile. |
+| **GW Points** | Points scored in the currently-selected gameweek. The default is the live or most-recently-completed GW. |
+| **Total** | Cumulative season points. |
+| **Behind** | How many points behind the leader. Always 0 for the leader. |
+| **Captain** | The captain pick for the selected GW, with that player's points (×2, or ×3 for the Triple Captain). |
+| **Chip** | Any chip played in the selected GW (Wildcard, Free Hit, Bench Boost, Triple Captain). Empty means no chip. |
+
+## The gameweek selector
+
+The selector in the top-right of the page lets you jump to any prior gameweek. The leaderboard re-sorts and the rank-change arrows recompute against the previous GW (not the current one). This is how you compare snapshots over the season without leaving the page.
+
+## The Points Race chart
+
+Above the leaderboard, the chart shows cumulative total points for every manager across every gameweek so far. The leader's line is slightly bolder; a dashed reference line marks the currently-selected GW. Hover any point to see who was where.
+
+## The Relegation Zone
+
+If your league has four or more managers, the **bottom three rows** are styled as a relegation zone: red-tinted backgrounds, a "DANGER" badge, and a colour-coded depth bar at the bottom of each row (amber → red the further down you are). A dashed ⚠️ separator divides "safe" from "drop zone".
+
+This is purely cosmetic — there's no actual relegation happening — but it's where the GW Punishment Suggester reads from. The bottom scorer of each gameweek gets sentenced to one of a rotating list of forfeits.
+
+<Callout type="tip" title="Points deductions">
+  League Admins can apply a per-manager per-gameweek points deduction (for late deadlines, missed digests, whatever house rules apply). Deductions show up as a reduced GW Points value with a small badge — see [Edit a member](/help/league-admin/editing-members).
+</Callout>
+
+## Where the data comes from
+
+Standings comes from the **FPL API**, filtered to your league's actual roster. Sorting, rank-change, and the average-points reference values are computed live by this app — they're not cached longer than ~60 seconds during a live gameweek, and a "refreshing…" pill surfaces the moment the cached value is stale.

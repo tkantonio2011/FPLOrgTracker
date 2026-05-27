@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { useLeague } from "@/components/league/LeagueProvider";
 
+import { HelpButton } from "@/components/manual/HelpButton";
 interface AgonyBreakdown {
   benchPts: number;
   captainPain: number;
@@ -259,6 +260,7 @@ export default function AgonyPage() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">The Agony Index</h1>
+        <HelpButton topic="/help/reading-the-app/agony" />
         <p className="text-sm text-slate-400 mt-0.5">A composite misfortune score. The leaderboard nobody wants to top.</p>
       </div>
 

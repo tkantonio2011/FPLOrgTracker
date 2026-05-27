@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLeague } from "@/components/league/LeagueProvider";
 
+import { HelpButton } from "@/components/manual/HelpButton";
 const POSITION_LABEL: Record<number, string> = { 1: "GK", 2: "DEF", 3: "MID", 4: "FWD" };
 const POSITION_COLOUR: Record<number, string> = {
   1: "bg-yellow-100 text-yellow-700",
@@ -188,6 +189,7 @@ export default function PlayerStatusPage() {
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Injury &amp; Doubt Tracker</h1>
+          <HelpButton topic="/help/reading-the-app/injuries" />
           <p className="text-sm text-slate-400 mt-0.5">
             {data ? `${data.gameweekName} · league-owned players with FPL flags` : "League-owned players with injury or availability concerns"}
           </p>

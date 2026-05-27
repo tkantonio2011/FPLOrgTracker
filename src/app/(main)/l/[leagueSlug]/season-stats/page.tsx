@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLeague } from "@/components/league/LeagueProvider";
 
+import { HelpButton } from "@/components/manual/HelpButton";
 interface ManagerTitle {
   managerId: number;
   title: string;
@@ -361,6 +362,7 @@ export default function SeasonStatsPage() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Season Stats</h1>
+        <HelpButton topic="/help/reading-the-app/season-stats" />
         <p className="text-sm text-slate-400 mt-0.5">{data ? `GW1–GW${data.currentGw} · per-manager season summary` : "Per-manager season summary"}</p>
       </div>
 

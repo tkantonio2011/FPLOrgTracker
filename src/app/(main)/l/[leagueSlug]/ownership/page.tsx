@@ -9,6 +9,7 @@ import { RefreshingPill } from "@/components/ui/RefreshingPill";
 import { useLeague } from "@/components/league/LeagueProvider";
 import { useFreshnessGate } from "@/lib/hooks/useFreshnessGate";
 
+import { HelpButton } from "@/components/manual/HelpButton";
 interface OwnershipPlayer {
   playerId: number;
   webName: string;
@@ -55,6 +56,7 @@ export default function OwnershipPage() {
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Player Ownership</h1>
+          <HelpButton topic="/help/reading-the-app/ownership" />
           <p className="text-sm text-slate-400 mt-0.5">
             Who owns what across {league.name}
             {data && ` · GW${data.gameweekId} · ${data.totalMembers} members`}

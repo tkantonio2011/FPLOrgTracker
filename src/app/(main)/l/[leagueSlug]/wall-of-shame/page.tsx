@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useLeague } from "@/components/league/LeagueProvider";
 
+import { HelpButton } from "@/components/manual/HelpButton";
 interface ShameRecord {
   id: string;
   trophy: string;
@@ -108,6 +109,7 @@ export default function WallOfShamePage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Wall of Shame</h1>
+        <HelpButton topic="/help/reading-the-app/wall-of-shame" />
         <p className="text-sm text-slate-400 mt-0.5">
           A permanent record of the season&apos;s most spectacular failures. Updated weekly.
         </p>

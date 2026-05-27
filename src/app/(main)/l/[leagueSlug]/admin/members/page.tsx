@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { useLeague } from "@/components/league/LeagueProvider";
 import { InviteMemberDialog } from "@/components/league/InviteMemberDialog";
 
+import { HelpButton } from "@/components/manual/HelpButton";
 interface Member {
   id: string;
   managerId: number;
@@ -56,6 +57,7 @@ export default function LeagueAdminMembersPage() {
       <header className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Members</h1>
+          <HelpButton topic="/help/league-admin/inviting-members" />
           <p className="text-sm text-slate-500 mt-1">
             {members.length} {includeInactive ? "total" : "active"} member
             {members.length === 1 ? "" : "s"}

@@ -15,6 +15,10 @@
 
 import { createHash, randomBytes } from "crypto";
 import { db } from "@/lib/db";
+import {
+  selfSignupPayloadSchema,
+  type SelfSignupPayload,
+} from "@/lib/signup/payload";
 
 export const SIGN_IN_TTL_MS = 15 * 60 * 1000; // 15 minutes
 export const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -103,6 +107,79 @@ export async function issueSignInToken(
     },
   });
   return { plaintext, tokenId: row.id, expiresAt };
+}
+
+/**
+ * Issue a self-signup token for the public sign-up flow. The desired league
+ * details (display name, FPL mini-league ID, FPL-verified timestamp) are
+ * encoded as JSON on the token row; no UserAccount or League exists yet.
+ *
+ * Contract: specs/005-public-signup/contracts/self-signup-token.md
+ * Lifetime: SIGN_IN_TTL_MS (15 minutes).
+ */
+export async function issueSelfSignupToken(
+  email: string,
+  payload: SelfSignupPayload,
+  ip: string | null,
+): Promise<IssuedToken> {
+  // Validate before insertion so a malformed payload never lands in the DB.
+  // Callers (the signup route) should validate too, but this is the choke point.
+  const parsed = selfSignupPayloadSchema.parse(payload);
+
+  const plaintext = generatePlaintextToken();
+  const tokenHash = hashToken(plaintext);
+  const expiresAt = new Date(Date.now() + SIGN_IN_TTL_MS);
+  const row = await db.magicLinkToken.create({
+    data: {
+      tokenHash,
+      purpose: "self_signup",
+      email,
+      expiresAt,
+      createdFromIp: ip,
+      selfSignupPayload: JSON.stringify(parsed),
+    },
+  });
+  return { plaintext, tokenId: row.id, expiresAt };
+}
+
+/**
+ * Atomically consume a self-signup token. The verify route's transaction is
+ * responsible for then creating the UserAccount + League + LeagueMembership +
+ * AuditEvent rows.
+ */
+export type ConsumeSelfSignupResult =
+  | { ok: true; tokenId: string; email: string; payload: SelfSignupPayload }
+  | { ok: false; reason: "invalid" | "expired" | "used" | "malformed" };
+
+export async function consumeSelfSignupToken(
+  plaintext: string,
+): Promise<ConsumeSelfSignupResult> {
+  if (!plaintext) return { ok: false, reason: "invalid" };
+
+  const tokenHash = hashToken(plaintext);
+  const token = await db.magicLinkToken.findUnique({ where: { tokenHash } });
+  if (!token) return { ok: false, reason: "invalid" };
+  if (token.purpose !== "self_signup") return { ok: false, reason: "invalid" };
+  if (token.usedAt) return { ok: false, reason: "used" };
+  if (token.expiresAt.getTime() <= Date.now()) return { ok: false, reason: "expired" };
+
+  // Atomic mark-used. Racing clicks resolve at the DB level.
+  const updated = await db.magicLinkToken.updateMany({
+    where: { id: token.id, usedAt: null },
+    data: { usedAt: new Date() },
+  });
+  if (updated.count !== 1) return { ok: false, reason: "used" };
+
+  if (!token.selfSignupPayload) return { ok: false, reason: "malformed" };
+  let parsed: SelfSignupPayload;
+  try {
+    const raw = JSON.parse(token.selfSignupPayload) as unknown;
+    parsed = selfSignupPayloadSchema.parse(raw);
+  } catch {
+    return { ok: false, reason: "malformed" };
+  }
+
+  return { ok: true, tokenId: token.id, email: token.email, payload: parsed };
 }
 
 /**

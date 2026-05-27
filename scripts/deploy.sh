@@ -12,6 +12,15 @@
 # WSL 1 users: run these from Windows PowerShell/cmd first, then --skip-build:
 #   npx prisma generate
 #   npm run build
+#
+# UAT target: when invoked via scripts/uat/deploy.sh, the following env vars
+# override the production defaults so the same artefacts deploy to UAT:
+#   DEPLOY_TARGET=uat               (changes version-bump and changelog stamping)
+#   DEPLOY_HOST_OVERRIDE=<eip>      (skip terraform.tfstate lookup)
+#   DEPLOY_ENV_FILE=<path>          (defaults to .env.production; UAT passes .env.uat)
+#   DEPLOY_DB_PATH=<absolute path>  (defaults to /home/ec2-user/app/prisma/prod.db)
+#   DEPLOY_PM2_NAME=<name>          (defaults to fpl-tracker)
+# See scripts/uat/deploy.sh and specs/004-uat-deployment/contracts/deploy-cli.md.
 set -eu
 set -o pipefail 2>/dev/null || true
 
@@ -23,36 +32,61 @@ done
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 TERRAFORM_DIR="$PROJECT_DIR/terraform"
-KEY_FILE="$TERRAFORM_DIR/recovery-key.pem"
 EC2_USER="ec2-user"
 APP_DIR="/home/ec2-user/app"
+
+# UAT/production overrides — see header comment.
+DEPLOY_TARGET="${DEPLOY_TARGET:-production}"
+DEPLOY_HOST_OVERRIDE="${DEPLOY_HOST_OVERRIDE:-}"
+DEPLOY_ENV_FILE="${DEPLOY_ENV_FILE:-$PROJECT_DIR/.env.production}"
+DEPLOY_DB_PATH="${DEPLOY_DB_PATH:-/home/ec2-user/app/prisma/prod.db}"
+DEPLOY_PM2_NAME="${DEPLOY_PM2_NAME:-fpl-tracker}"
+DEPLOY_KEY_OVERRIDE="${DEPLOY_KEY_OVERRIDE:-}"
+KEY_FILE="${DEPLOY_KEY_OVERRIDE:-$TERRAFORM_DIR/recovery-key.pem}"
+
+if [ "$DEPLOY_TARGET" != "production" ] && [ "$DEPLOY_TARGET" != "uat" ]; then
+  echo "ERROR: DEPLOY_TARGET must be 'production' or 'uat' (got '$DEPLOY_TARGET')."
+  exit 1
+fi
 
 # ── Resolve EC2 IP from Terraform state ──────────────────────────────────────
 echo "==> Resolving EC2 host..."
 
 STATE_FILE="$TERRAFORM_DIR/terraform.tfstate"
+TF_OUTPUT_NAME="public_ip"
+if [ "$DEPLOY_TARGET" = "uat" ]; then
+  TF_OUTPUT_NAME="uat_public_ip"
+fi
 
 PYTHON=""
 for cmd in python3 python py; do
   if command -v "$cmd" &>/dev/null; then PYTHON="$cmd"; break; fi
 done
 
+# Convert a bash path to whatever the local Python understands. On Git Bash,
+# `python3` is the native Windows binary and cannot resolve /d/foo paths — it
+# needs D:\foo. cygpath is bundled with Git Bash. WSL Python (and Linux Python)
+# both accept /mnt/d/... and /d/... so the function is a no-op there.
+native_path() {
+  if command -v cygpath &>/dev/null; then
+    cygpath -w "$1"
+  else
+    echo "$1"
+  fi
+}
+
 EC2_HOST=""
-if [ -f "$STATE_FILE" ] && [ -n "$PYTHON" ]; then
-  EC2_HOST=$("$PYTHON" -c "
-import json
-with open('$STATE_FILE') as f:
-    state = json.load(f)
-print(state.get('outputs', {}).get('public_ip', {}).get('value', ''))
-" 2>/dev/null)
+if [ -n "$DEPLOY_HOST_OVERRIDE" ]; then
+  EC2_HOST="$DEPLOY_HOST_OVERRIDE"
+else
+  # Use `terraform output -raw` directly. The Python-parses-tfstate optimisation
+  # was fragile on Git Bash where /d/... paths don't resolve in native Windows
+  # Python. terraform output works the same everywhere.
+  EC2_HOST=$(cd "$TERRAFORM_DIR" && terraform output -raw "$TF_OUTPUT_NAME" 2>/dev/null || true)
 fi
 
 if [ -z "$EC2_HOST" ]; then
-  EC2_HOST=$(cd "$TERRAFORM_DIR" && terraform output -raw public_ip 2>/dev/null) || true
-fi
-
-if [ -z "$EC2_HOST" ]; then
-  echo "ERROR: Could not read public_ip from Terraform state."
+  echo "ERROR: Could not read $TF_OUTPUT_NAME from Terraform state."
   echo "       Run 'cd terraform && terraform apply' first."
   exit 1
 fi
@@ -92,16 +126,26 @@ $SSH "$EC2_USER@$EC2_HOST" "
 cd "$PROJECT_DIR"
 TODAY=$(date +%Y-%m-%d)
 
+PKG_PATH_NATIVE=$(native_path "$PROJECT_DIR/package.json")
+CHANGELOG_PATH_NATIVE=$(native_path "$PROJECT_DIR/CHANGELOG.md")
+
 if [ "$SKIP_BUILD" = true ]; then
-  NEW_VERSION=$("$PYTHON" -c "import json; print(json.load(open('$PROJECT_DIR/package.json'))['version'])")
+  NEW_VERSION=$("$PYTHON" -c "import sys, json; print(json.load(sys.stdin)['version'])" < "$PROJECT_DIR/package.json")
   echo "==> Using pre-built version v$NEW_VERSION (--skip-build)"
   if [ ! -d "$PROJECT_DIR/.next/standalone" ]; then
     echo "ERROR: .next/standalone not found — run 'npm run release && npx prisma generate && npm run build' first."
     exit 1
   fi
+elif [ "$DEPLOY_TARGET" = "uat" ]; then
+  # UAT deploys do NOT bump version or stamp CHANGELOG — that would inflate
+  # the version number each time we tested a release candidate. Build only.
+  NEW_VERSION=$("$PYTHON" -c "import sys, json; print(json.load(sys.stdin)['version'])" < "$PROJECT_DIR/package.json")
+  echo "==> Building Next.js app for UAT (v$NEW_VERSION, no version bump)..."
+  npx prisma generate
+  npm run build
 else
   echo "==> Bumping version..."
-  NEW_VERSION=$("$PYTHON" - "$PROJECT_DIR/package.json" << 'PYEOF'
+  NEW_VERSION=$("$PYTHON" - "$PKG_PATH_NATIVE" << 'PYEOF'
 import sys, json, re
 path = sys.argv[1]
 with open(path, 'r', encoding='utf-8') as f:
@@ -120,7 +164,7 @@ PYEOF
   echo "    Version: v$NEW_VERSION ($TODAY)"
 
   if grep -q "^## vNEXT" "$PROJECT_DIR/CHANGELOG.md"; then
-    "$PYTHON" - "$PROJECT_DIR/CHANGELOG.md" "$NEW_VERSION" "$TODAY" << 'PYEOF'
+    "$PYTHON" - "$CHANGELOG_PATH_NATIVE" "$NEW_VERSION" "$TODAY" << 'PYEOF'
 import sys
 path, version, today = sys.argv[1], sys.argv[2], sys.argv[3]
 with open(path, 'r', encoding='utf-8') as f:
@@ -185,13 +229,21 @@ $SSH "$EC2_USER@$EC2_HOST" "
 "
 
 # ── 4. Upload env file ────────────────────────────────────────────────────────
-ENV_FILE="$PROJECT_DIR/.env.production"
+ENV_FILE="$DEPLOY_ENV_FILE"
 if [ -f "$ENV_FILE" ]; then
-  echo "==> Uploading .env.production..."
+  echo "==> Uploading $(basename "$ENV_FILE")..."
+  # Belt-and-braces production-safety guard: if the target is UAT, the env file
+  # MUST declare APP_ENV=uat. Refuses to upload .env.production to a UAT host.
+  if [ "$DEPLOY_TARGET" = "uat" ]; then
+    if ! grep -q "^APP_ENV=uat$" "$ENV_FILE"; then
+      echo "ERROR: $ENV_FILE does not contain APP_ENV=uat — refusing to upload to UAT host."
+      exit 1
+    fi
+  fi
   scp -i "$KEY_FILE" -o StrictHostKeyChecking=no \
     "$ENV_FILE" "$EC2_USER@$EC2_HOST:$APP_DIR/.env.local"
 else
-  echo "  WARN: .env.production not found — keeping existing server env."
+  echo "  WARN: $ENV_FILE not found — keeping existing server env."
 fi
 
 # ── 4b. Delete any prebuilt static API responses ─────────────────────────────
@@ -221,43 +273,53 @@ $SSH "$EC2_USER@$EC2_HOST" bash << REMOTE
   # It contains DATABASE_URL="file:./dev.db" and must never be used in production.
   rm -f "$APP_DIR/.env"
 
-  DATABASE_URL="file:$APP_DIR/prisma/prod.db" \
+  # Stop PM2 BEFORE running migrations. A running Node/Prisma process holds an
+  # exclusive lock on the SQLite file, which makes `prisma migrate deploy` fail
+  # with "database is locked". Safe to ignore if the process isn't running yet
+  # (first deploy).
+  pm2 delete $DEPLOY_PM2_NAME 2>/dev/null || true
+
+  DATABASE_URL="file:$DEPLOY_DB_PATH" \
     prisma migrate deploy --schema="$APP_DIR/prisma/schema.prisma"
 
-  # Write a pm2 ecosystem config that hard-codes DATABASE_URL so it is always
-  # set correctly in the Node.js process regardless of env-file loading order.
-  # Next.js will load SESSION_SECRET / SMTP_* / BOOTSTRAP_* / etc. from
-  # .env.local at startup; DATABASE_URL is already in process.env so dotenv
-  # won't override it.
+  # Write a pm2 ecosystem config that hard-codes DATABASE_URL and APP_ENV so
+  # they are always set correctly in the Node.js process regardless of env-file
+  # loading order. Next.js will load SESSION_SECRET / SMTP_* / BOOTSTRAP_* /
+  # UAT_ALLOWED_EMAILS / etc. from .env.local at startup; the values below are
+  # already in process.env so dotenv won't override them.
   cat > "$APP_DIR/ecosystem.config.js" << 'ECOEOF'
 module.exports = {
   apps: [{
-    name: 'fpl-tracker',
+    name: 'PM2NAME_PLACEHOLDER',
     script: './server.js',
     cwd: 'APPDIR_PLACEHOLDER',
     out_file: '/home/ec2-user/logs/out.log',
     error_file: '/home/ec2-user/logs/error.log',
     env: {
       NODE_ENV: 'production',
+      APP_ENV: 'APPENV_PLACEHOLDER',
       PORT: '3000',
-      DATABASE_URL: 'file:APPDIR_PLACEHOLDER/prisma/prod.db'
+      DATABASE_URL: 'file:DBPATH_PLACEHOLDER'
     }
   }]
 };
 ECOEOF
 
-  # Substitute the real app path (can't expand inside single-quoted heredoc)
+  # Substitute the real values (can't expand inside single-quoted heredoc)
   sed -i "s|APPDIR_PLACEHOLDER|$APP_DIR|g" "$APP_DIR/ecosystem.config.js"
+  sed -i "s|PM2NAME_PLACEHOLDER|$DEPLOY_PM2_NAME|g" "$APP_DIR/ecosystem.config.js"
+  sed -i "s|APPENV_PLACEHOLDER|$DEPLOY_TARGET|g" "$APP_DIR/ecosystem.config.js"
+  sed -i "s|DBPATH_PLACEHOLDER|$DEPLOY_DB_PATH|g" "$APP_DIR/ecosystem.config.js"
 
-  # Always delete and re-start so pm2's daemon has no stale env vars cached.
-  pm2 delete fpl-tracker 2>/dev/null || true
+  # PM2 was stopped above (before migrate). Start cleanly now so the new
+  # ecosystem config + fresh env vars take effect.
   pm2 start "$APP_DIR/ecosystem.config.js"
   pm2 save
 REMOTE
 
 # ── 6. Done ───────────────────────────────────────────────────────────────────
 echo ""
-echo "==> Deploy complete!"
+echo "==> Deploy complete! (target: $DEPLOY_TARGET)"
 echo "    URL: http://$EC2_HOST"
 echo "    SSH: ssh -i terraform/recovery-key.pem ec2-user@$EC2_HOST"
-echo "    Logs: ssh ... 'pm2 logs fpl-tracker'"
+echo "    Logs: ssh ... 'pm2 logs $DEPLOY_PM2_NAME'"

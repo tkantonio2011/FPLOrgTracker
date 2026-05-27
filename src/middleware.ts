@@ -1,16 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isUat } from "@/lib/uat/environment";
 
 /**
  * Page-level auth gate. Edge runtime — no Prisma access — so we only check for
  * the *presence* of a session cookie. Real validation happens in route handlers
  * and Server Component layouts via `requireSession` / `requireLeagueMember`.
+ *
+ * Also emits `X-Robots-Tag: noindex, nofollow` on every response when running
+ * in UAT (FR-011). Cached in module scope — Edge runtime keeps modules warm.
  */
 
 const SESSION_COOKIE = process.env.SESSION_COOKIE_NAME ?? "session";
 
+/**
+ * Safe wrapper around `isUat()` for the Edge runtime — `isUat()` throws on
+ * malformed APP_ENV (e.g., `APP_ENV=staging`). Module-init throws in Edge
+ * middleware tear down the entire site, so we degrade gracefully to `false`
+ * here. A misconfigured server is still caught loudly inside the Node runtime
+ * by `instrumentation.ts` and the route handlers, just not by middleware.
+ */
+function isUatSafe(): boolean {
+  try {
+    return isUat();
+  } catch {
+    return false;
+  }
+}
+
+function applyUatHeaders(res: NextResponse): NextResponse {
+  if (isUatSafe()) {
+    res.headers.set("X-Robots-Tag", "noindex, nofollow");
+  }
+  return res;
+}
+
 const PUBLIC_PREFIXES = [
   // Multi-league auth surface
   "/sign-in",
+  "/sign-up",      // 005: public sign-up page, anonymous-only
   "/verify",
   "/invitations",
   // API routes self-authenticate
@@ -78,7 +105,7 @@ export async function middleware(req: NextRequest) {
   requestHeaders.set("x-pathname", pathname);
   const passthrough = NextResponse.next({ request: { headers: requestHeaders } });
 
-  if (isPublic(pathname)) return passthrough;
+  if (isPublic(pathname)) return applyUatHeaders(passthrough);
 
   const signedIn = hasSessionCookie(req);
 
@@ -91,15 +118,15 @@ export async function middleware(req: NextRequest) {
     url.pathname = "/leagues";
     url.search = "";
     url.searchParams.set("next", pathname);
-    return NextResponse.redirect(url);
+    return applyUatHeaders(NextResponse.redirect(url));
   }
 
-  if (signedIn) return passthrough;
+  if (signedIn) return applyUatHeaders(passthrough);
 
   const url = req.nextUrl.clone();
   url.pathname = "/sign-in";
   url.searchParams.set("redirect", pathname);
-  return NextResponse.redirect(url);
+  return applyUatHeaders(NextResponse.redirect(url));
 }
 
 export const config = {

@@ -1,0 +1,46 @@
+---
+title: Transfer Regret
+audience: member
+summary: For every transfer, the player you sold, the player you bought, and the points difference that followed.
+lastUpdated: 2026-05-18
+featurePagePath: /l/[leagueSlug]/regret
+relatedTopics:
+  - /help/reading-the-app/transfers
+---
+
+Transfer Regret ranks every single transfer in the league by how much it cost (or earned) the manager who made it. The metric is brutally simple: from the gameweek of the transfer onward, how many points did the player you sold score vs. how many points did the player you bought score? Negative numbers are the regrets.
+
+<AnnotatedImage src="regret/overview.png" caption="The Regret table sorted by worst-regret first. Each row shows the sold player, the bought player, and the realised point difference." />
+
+## What each column means
+
+| Column | What it shows |
+|---|---|
+| **Manager** | Who made the transfer. |
+| **GW** | The gameweek the transfer was made for. |
+| **Out** | The player sold, and their points scored *from this GW onward*. |
+| **In** | The player bought, and their points scored from this GW onward. |
+| **Hit** | -4 per excess transfer. Wildcard / Free Hit transfers show "(free)". |
+| **Net** | `In points` − `Out points` − `Hit`. Negative = regret. The colour intensifies (red) as the regret grows. |
+
+## How to read it
+
+The table defaults to sorting by **Net ascending** — biggest regrets first. The transfers at the top of the page are the ones where someone sold a player who then went on a rampage and bought a player who promptly got injured.
+
+You can re-sort by:
+
+- **Manager** — group all of one manager's transfers together.
+- **GW** — see all transfers chronologically.
+- **Hit** — the hits that backfired hardest.
+
+<Callout type="warning" title="The regret keeps growing">
+  A transfer made in GW 5 is still accumulating regret in GW 20 if the player sold is still scoring more than the player bought. The Net column reflects the season's total damage from that single decision, not just the week after.
+</Callout>
+
+## What this doesn't measure
+
+- **Opportunity cost** — if you transferred A out for B, but C would have been the better buy, the regret only compares A vs. B, not A vs. C.
+- **Cascading transfers** — if you sold a player to free up budget for another move, the page treats them as separate transfers, not a package.
+- **Wildcard transfers** — these are listed but flagged as free; the Net is computed on player swap only.
+
+For a more holistic "what was your worst move ever" rank, see the [Wall of Shame](/help/reading-the-app/wall-of-shame), which surfaces the single worst transfer of the season as a trophy.

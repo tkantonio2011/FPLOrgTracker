@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useLeague } from "@/components/league/LeagueProvider";
+import { HelpButton } from "@/components/manual/HelpButton";
 
 interface LeagueSettings {
   id: string;
@@ -105,12 +106,15 @@ export default function LeagueAdminSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-bold text-slate-900">League settings</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          {form.memberCount} member{form.memberCount === 1 ? "" : "s"} · {form.adminCount} admin
-          {form.adminCount === 1 ? "" : "s"} · created {new Date(form.createdAt).toLocaleDateString()}
-        </p>
+      <header className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">League settings</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            {form.memberCount} member{form.memberCount === 1 ? "" : "s"} · {form.adminCount} admin
+            {form.adminCount === 1 ? "" : "s"} · created {new Date(form.createdAt).toLocaleDateString()}
+          </p>
+        </div>
+        <HelpButton topic="/help/league-admin/league-settings" />
       </header>
 
       <Card>

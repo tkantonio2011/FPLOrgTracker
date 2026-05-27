@@ -1,0 +1,48 @@
+---
+title: Captain What-If
+audience: member
+summary: For every gameweek, what your captain scored vs. the best captain you could have picked from your own squad.
+lastUpdated: 2026-05-18
+featurePagePath: /l/[leagueSlug]/captain-whatif
+relatedTopics:
+  - /help/reading-the-app/captain-history
+---
+
+Captain What-If quantifies the cost of every captain pick. For each gameweek, it compares what your actual captain scored (after multiplier) against what your *best owned alternative* would have scored. The gap is the points you left on the table.
+
+<AnnotatedImage src="captain-whatif/overview.png" caption="The Captain What-If bar chart with colour-coded misses per gameweek." />
+
+## How to use it
+
+<Steps>
+  <Step title="Pick a manager">
+    Defaults to you. The dropdown lets you analyse any league member.
+  </Step>
+  <Step title="Read the season summary tiles">
+    Optimal picks count, total misses, biggest single-GW miss, and average miss per GW.
+  </Step>
+  <Step title="Scan the bar chart">
+    Green = you picked the optimal captain. Amber = small miss (≤4 pts). Orange = moderate (≤10 pts). Red = catastrophic (>10 pts).
+  </Step>
+  <Step title="Drill in to a specific GW">
+    Below the chart, the per-GW breakdown table shows your captain (with points), the best alternative you owned (with points), and the score impact.
+  </Step>
+</Steps>
+
+## What "best alternative" means
+
+The page considers only players that were in your squad that gameweek — including bench players. The "best alternative" is whoever scored highest. So if you captained Salah for 8 and a bench midfielder you owned scored 18, the miss is `(18 × 2) − (8 × 2) = 20 points`. Ouch.
+
+This is the realistic ceiling — captaincy is a choice between players you actually owned. The page doesn't compare against players you didn't own (that would be the global ceiling, a different and arguably more painful number).
+
+## Triple Captain weeks
+
+If you played Triple Captain that week, the multiplier is 3 instead of 2 for both the actual and the hypothetical. The page reflects this in the GW row.
+
+## Why this matters
+
+Captain points are roughly **20% of your weekly score** on average. Optimising captaincy is the single highest-leverage decision you make each week. A manager who consistently picks the optimal captain (green bars all season) is doing one thing extraordinarily well, even if everything else is mediocre.
+
+<Callout type="warning" title="Don't rage-quit on hindsight">
+  The page shows the optimal pick *after the fact*. The point is to identify patterns over time — e.g. you systematically captain the wrong forward when there's a rotation risk. Picking on a single bad GW is not a strategy.
+</Callout>

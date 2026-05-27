@@ -1,0 +1,43 @@
+---
+title: Form Table
+audience: member
+summary: Last-three-gameweek momentum, with inline sparklines showing whose trend is real.
+lastUpdated: 2026-05-18
+featurePagePath: /l/[leagueSlug]/form
+relatedTopics:
+  - /help/reading-the-app/standings
+  - /help/reading-the-app/season-stats
+---
+
+The Form Table re-ranks your league by recent performance rather than season total. Each manager's last three gameweek scores are averaged, and the table sorts by that average — so the manager who's been clobbering it for three GWs surfaces at the top regardless of their overall standing.
+
+<AnnotatedImage src="form-table/overview.png" caption="The Form Table with the trend column. Each row shows a manager's last 3 GW scores, the average, and a sparkline." />
+
+## What each column means
+
+| Column | What it shows |
+|---|---|
+| **Form rank** | Position by 3-GW average score. Top = best recent form. |
+| **Manager** | Display name + team. |
+| **GW-2, GW-1, GW** | The actual scores from the last three completed gameweeks. |
+| **Avg (3)** | The average of those three. |
+| **Trend** | Inline SVG sparkline connecting the three dots. Green = improving, red = declining, grey = flat. |
+| **Overall rank** | Their position in the season-long Standings, for context. |
+
+## How to read the trend
+
+The sparkline does what tables don't: it shows you *direction*. A manager averaging 60 might be 30 → 60 → 90 (sharp recovery) or 90 → 60 → 30 (sharp decline) — same average, totally different stories. The colour of the line tells you which:
+
+- **Green** — the last GW is higher than the first of the three. Momentum is up.
+- **Red** — the last GW is lower than the first. Momentum is down.
+- **Grey** — flat or near-flat. No clear direction.
+
+The area under the line is subtly tinted to reinforce the direction.
+
+## Why this matters
+
+Total points are the only thing that decides a season, but recent form is what predicts the next few weeks. A manager riding a 90 → 95 → 100 streak is probably making smart choices that will compound; a 60 → 50 → 40 manager is probably leaking points to bench picks and broken captains.
+
+<Callout type="tip" title="Pair this with Captain History">
+  If you spot a sudden decline on the Form Table, open [Captain History](/help/reading-the-app/captain-history) for that manager. Bad captain picks for three weeks running are the most common explanation.
+</Callout>

@@ -82,6 +82,7 @@ model League {
   logoUrl                  String?   @map("logo_url")
   miniLeagueId             Int?      @unique @map("mini_league_id")
   status                   String    @default("active") // "active" | "suspended"
+  miniLeagueUnverified     Boolean   @default(false) @map("mini_league_unverified") // 005: true when FPL API was unreachable at sign-up
   digestPrompt             String?   @map("digest_prompt")
   digestCacheGw            Int?      @map("digest_cache_gw")
   digestCacheJson          String?   @map("digest_cache_json")
@@ -180,16 +181,17 @@ model SuperAdmin {
 }
 
 model MagicLinkToken {
-  id            String    @id @default(cuid())
-  tokenHash     String    @unique @map("token_hash")
-  purpose       String // "sign_in" | "invitation"
-  userAccountId String?   @map("user_account_id")
-  email         String
-  invitationId  String?   @unique @map("invitation_id")
-  expiresAt     DateTime  @map("expires_at")
-  usedAt        DateTime? @map("used_at")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  createdFromIp String?   @map("created_from_ip")
+  id                 String    @id @default(cuid())
+  tokenHash          String    @unique @map("token_hash")
+  purpose            String // "sign_in" | "invitation" | "self_signup"
+  userAccountId      String?   @map("user_account_id")
+  email              String
+  invitationId       String?   @unique @map("invitation_id")
+  selfSignupPayload  String?   @map("self_signup_payload") // 005: JSON SelfSignupPayload, null for non-signup tokens
+  expiresAt          DateTime  @map("expires_at")
+  usedAt             DateTime? @map("used_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  createdFromIp      String?   @map("created_from_ip")
 
   userAccount UserAccount? @relation(fields: [userAccountId], references: [id])
   invitation  Invitation?  @relation(fields: [invitationId], references: [id])

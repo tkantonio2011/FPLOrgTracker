@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLeague } from "@/components/league/LeagueProvider";
 
+import { HelpButton } from "@/components/manual/HelpButton";
 interface GwScore {
   gw: number;
   pts: number | null;
@@ -122,6 +123,7 @@ export default function FormPage() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Form Table</h1>
+        <HelpButton topic="/help/reading-the-app/form-table" />
         <p className="text-sm text-slate-400 mt-0.5">
           {data && data.formGws.length > 0
             ? `Ranked by last ${data.formWindow} completed gameweeks · GW${data.formGws[0]}–GW${data.formGws[data.formGws.length - 1]}`

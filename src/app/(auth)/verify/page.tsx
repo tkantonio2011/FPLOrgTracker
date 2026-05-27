@@ -18,7 +18,14 @@ export default function VerifyPage({
       ? "That sign-in link has expired. Request a new one to continue."
       : error === "used"
         ? "That sign-in link has already been used. Request a new one if you need to sign in again."
-        : "That sign-in link was invalid. Request a new one to continue.";
+        : error === "conflict"
+          // Self-signup race: someone else's magic-link click won the race for
+          // the same email address or FPL mini-league ID. See spec FR-011b.
+          ? "Sign-up couldn't complete — the email or FPL mini-league ID is already taken. Try signing up again with a different value."
+          : "That sign-in link was invalid. Request a new one to continue.";
+
+  const ctaHref = error === "conflict" ? "/sign-up" : "/sign-in";
+  const ctaLabel = error === "conflict" ? "Try signing up again" : "Request a new link";
 
   return (
     <div className="w-full max-w-sm">
@@ -26,10 +33,10 @@ export default function VerifyPage({
         <h1 className="text-lg font-bold text-slate-900 mb-2">Sign-in link not valid</h1>
         <p className="text-sm text-slate-500 mb-6">{message}</p>
         <Link
-          href="/sign-in"
+          href={ctaHref}
           className="inline-block py-2.5 px-4 rounded-lg bg-[#37003c] text-white text-sm font-semibold hover:bg-[#4a0052] transition-colors"
         >
-          Request a new link
+          {ctaLabel}
         </Link>
       </div>
     </div>

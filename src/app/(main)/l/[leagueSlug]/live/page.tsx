@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLeague } from "@/components/league/LeagueProvider";
 import { useFreshnessGate } from "@/lib/hooks/useFreshnessGate";
 
+import { HelpButton } from "@/components/manual/HelpButton";
 const CHIP_LABELS: Record<string, string> = {
   bboost: "BB",
   "3xc": "TC",
@@ -100,6 +101,7 @@ export default function LivePage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Live Points</h1>
+          <HelpButton topic="/help/reading-the-app/live-points" />
           <p className="text-sm text-slate-400 mt-0.5">
             {data ? `${data.gameweekName} — real-time ${league.name} leaderboard` : "Real-time gameweek scores"}
           </p>

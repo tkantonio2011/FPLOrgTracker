@@ -15,6 +15,7 @@ import {
 } from "recharts";
 import { useLeague } from "@/components/league/LeagueProvider";
 
+import { HelpButton } from "@/components/manual/HelpButton";
 interface WhatIfGw {
   gw: number;
   actualCaptain: { id: number; name: string; pts: number };
@@ -240,6 +241,7 @@ export default function CaptainWhatIfPage() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">What If I&apos;d Captained X?</h1>
+        <HelpButton topic="/help/reading-the-app/captain-whatif" />
         <p className="text-sm text-slate-400 mt-0.5">Every GW: who you captained, who you should have, and what it cost you.</p>
       </div>
 

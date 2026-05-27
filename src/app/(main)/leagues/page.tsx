@@ -18,6 +18,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/session";
+import { HelpButton } from "@/components/manual/HelpButton";
 import { getServerUserFromCookie } from "@/lib/auth/current-user";
 
 export const dynamic = "force-dynamic";
@@ -74,14 +75,19 @@ export default async function LeaguesPage({ searchParams }: PageProps) {
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="max-w-md w-full text-center">
           <h1 className="text-xl font-bold text-slate-900 mb-2">No active leagues</h1>
-          <p className="text-sm text-slate-600">
-            You aren&apos;t currently a member of any active league. If you&apos;re expecting access,
-            ask the league administrator who invited you to re-send your invitation.
+          <p className="text-sm text-slate-600 mb-6">
+            You aren&apos;t currently a member of any active league. Create one of your own, or ask the league administrator who invited you to re-send your invitation.
           </p>
+          <Link
+            href="/leagues/new"
+            className="inline-flex px-4 py-2.5 rounded-lg bg-[#37003c] text-white text-sm font-semibold hover:bg-[#4a0052] transition-colors"
+          >
+            Create a new league
+          </Link>
           {isSuperAdmin && (
             <Link
               href="/platform"
-              className="inline-flex mt-6 px-4 py-2.5 rounded-lg bg-[#37003c] text-white text-sm font-semibold hover:bg-[#4a0052] transition-colors"
+              className="inline-flex mt-3 ml-3 px-4 py-2.5 rounded-lg border border-slate-200 text-slate-900 text-sm font-semibold hover:bg-slate-50 transition-colors"
             >
               Platform admin →
             </Link>
@@ -98,7 +104,10 @@ export default async function LeaguesPage({ searchParams }: PageProps) {
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
       <div className="w-full max-w-md">
-        <h1 className="text-xl font-bold text-slate-900 mb-1">Choose a league</h1>
+        <div className="flex items-start justify-between gap-3 mb-1">
+          <h1 className="text-xl font-bold text-slate-900">Choose a league</h1>
+          <HelpButton topic="/help/getting-started/switching-leagues" size="sm" />
+        </div>
         <p className="text-sm text-slate-500 mb-6">
           {active.length === 1
             ? "Pick a destination."
@@ -139,6 +148,15 @@ export default async function LeaguesPage({ searchParams }: PageProps) {
             )}
           </ul>
         )}
+
+        <div className="mt-4">
+          <Link
+            href="/leagues/new"
+            className="block w-full text-center py-2.5 px-4 rounded-lg border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors"
+          >
+            + Create another league
+          </Link>
+        </div>
 
         {isSuperAdmin && (
           <>

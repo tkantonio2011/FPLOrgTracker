@@ -1,0 +1,48 @@
+---
+title: Season Stats
+audience: member
+summary: League-wide cumulative numbers — total bench wasted, total transfer hits, total captain blanks, and more.
+lastUpdated: 2026-05-18
+featurePagePath: /l/[leagueSlug]/season-stats
+---
+
+Season Stats is the dashboard view of the league's collective season so far. It rolls up every gameweek into a single screen of cumulative totals and per-manager breakdowns, so you can see at a glance whose habits have cost them the most.
+
+<AnnotatedImage src="season-stats/overview.png" caption="The Season Stats page with cumulative totals at the top and per-manager breakdowns below." />
+
+## What's on the page
+
+The page splits into three bands:
+
+**League totals** (top): single-number cards summing across every member —
+
+- Total bench points wasted across the season
+- Total points paid in transfer hits
+- Total captain blanks (captain scored ≤ 3)
+- Average gameweek score across all managers, all weeks
+
+**Per-manager breakdown** (middle): each manager's individual contribution to each total, sortable by column.
+
+**Trends** (bottom): cumulative line charts for each metric so you can see whether the league is getting better or worse over time. (Spoiler: usually worse.)
+
+## What each metric counts
+
+- **Bench points wasted** — points scored by your bench players that you didn't get because they weren't in your starting eleven. Autosubs that DO trigger don't count — those are points you got.
+- **Transfer hits** — the -4 (or -8, etc.) penalties for transfers above the free allowance. Chip-protected transfers (Wildcard, Free Hit) don't count.
+- **Captain blanks** — gameweeks where your captain scored 3 or fewer points (after the multiplier is applied). A failed Triple Captain is especially painful here.
+- **Average GW score** — total GW points across all members divided by (members × completed GWs).
+
+## How it relates to the other pages
+
+This page is the **executive summary**. Each metric has a dedicated deep-dive elsewhere:
+
+- Bench detail → [Bench Waste](/help/reading-the-app/bench-waste)
+- Transfer detail → [Transfer Regret](/help/reading-the-app/regret)
+- Captain detail → [Captain History](/help/reading-the-app/captain-history) and [Captain What-If](/help/reading-the-app/captain-whatif)
+- A composite of all three → [Agony Index](/help/reading-the-app/agony)
+
+Use Season Stats to spot anomalies; click through to the dedicated page when you want the story behind the number.
+
+<Callout type="note" title="The numbers refresh with every completed gameweek">
+  Season Stats updates as soon as the previous gameweek's data finalises in the FPL API — typically Tuesday afternoon UK time after Monday-night fixtures and bonus-point recalculation finish.
+</Callout>

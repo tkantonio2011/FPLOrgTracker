@@ -1,9 +1,24 @@
+/**
+ * Magic-link sign-in endpoint.
+ *
+ * Enumeration-resistant: returns an identical `{ sent: true }` response whether
+ * or not the account exists and whether or not email delivery succeeds. The
+ * response shape MUST stay identical across every code path.
+ *
+ * The 004 UAT allow-list gate that previously sat in this handler was retired
+ * by feature 005-public-signup (see 005 spec FR-017): once any email can
+ * self-signup and immediately sign in, an allow-list on the sign-in route was
+ * a no-op gate that only succeeded in breaking local dev when APP_ENV=uat was
+ * set without UAT_ALLOWED_EMAILS.
+ */
+
 import type { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { ok, fail, failFromError } from "@/lib/http/response";
 import { parseBody, z } from "@/lib/validation";
 import { checkSignInRateLimit, issueSignInToken } from "@/lib/auth/magic-link";
 import { sendMagicLink } from "@/lib/auth/email";
+import { appOrigin } from "@/lib/auth/origin";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -29,6 +44,7 @@ function safeRedirect(input: string | null | undefined): string {
   return input;
 }
 
+
 export async function POST(req: NextRequest) {
   try {
     const body = await parseBody(req, bodySchema);
@@ -44,7 +60,7 @@ export async function POST(req: NextRequest) {
     const issued = await issueSignInToken(body.email, isUsable ? account.id : null, ip);
 
     if (issued) {
-      const origin = req.nextUrl.origin;
+      const origin = appOrigin(req);
       const redirect = safeRedirect(body.redirectTo);
       const link = `${origin}/api/auth/verify?token=${encodeURIComponent(issued.plaintext)}&redirect=${encodeURIComponent(redirect)}`;
       // Fire-and-forget email send; failures are logged but not surfaced

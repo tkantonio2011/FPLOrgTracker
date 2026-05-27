@@ -17,6 +17,7 @@ import Link from "next/link";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/session";
 import { getServerUserFromCookie } from "@/lib/auth/current-user";
 
+import { HelpButton } from "@/components/manual/HelpButton";
 export const dynamic = "force-dynamic";
 
 const SUB_LINKS = [
@@ -55,13 +56,22 @@ export default async function MyAdminPage() {
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-4xl mx-auto">
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">My admin leagues</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          You administer {adminMemberships.length}{" "}
-          {adminMemberships.length === 1 ? "league" : "leagues"}. Jump straight into the section
-          you need.
-        </p>
+      <header className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">My admin leagues</h1>
+          <HelpButton topic="/help/league-admin/overview" />
+          <p className="text-sm text-slate-500 mt-1">
+            You administer {adminMemberships.length}{" "}
+            {adminMemberships.length === 1 ? "league" : "leagues"}. Jump straight into the section
+            you need.
+          </p>
+        </div>
+        <Link
+          href="/leagues/new"
+          className="shrink-0 px-4 py-2.5 rounded-lg border border-slate-200 text-slate-900 text-sm font-semibold hover:bg-slate-50 transition-colors"
+        >
+          + Create another league
+        </Link>
       </header>
 
       <ul className="space-y-3">

@@ -1,0 +1,42 @@
+---
+title: Transfers
+audience: member
+summary: Who bought and sold whom, when, and how many hits they took to do it.
+lastUpdated: 2026-05-18
+featurePagePath: /l/[leagueSlug]/transfers
+relatedTopics:
+  - /help/reading-the-app/regret
+---
+
+The Transfers page logs every transfer every member has made this season — player in, player out, cost in points hits, and the gameweek the transfer was made for.
+
+<AnnotatedImage src="transfers/overview.png" caption="Transfers grouped by manager with the most recent moves at the top." />
+
+## What you see
+
+For each manager, a list of transfers in chronological order (newest first):
+
+- **In / Out** — the players bought and sold, with their current price.
+- **GW** — the gameweek the transfer was made for. Note: a transfer made on Friday for GW 27 shows GW 27 here, not the calendar week it was made in.
+- **Hit** — if the manager spent more than their free transfers, they took a -4 hit per extra transfer. The total cost is shown as `-4`, `-8`, etc.
+- **Net result** — combined points scored by the new player(s) over the points the sold player(s) would have scored, minus the hit cost. This is the realisation of the gamble.
+
+## What it tells you
+
+A glance at this page lets you see:
+
+- Who plays aggressively (lots of transfers) vs. set-and-forget (rare moves).
+- Who routinely takes hits, and whether those hits paid off (positive net result) or backfired (negative).
+- Who panic-traded in to chase last week's points (transferred in a player AFTER their big haul), and whether it cost them.
+
+## Wildcard and Free Hit transfers
+
+Transfers made during a Wildcard or Free Hit are shown but **flagged** as such. The hit cost is zero on those weeks (the chip removes the penalty). Free Hit reverses the next week — the players sold come back and the players bought go away — so the realised value of a Free Hit transfer is unusual to compute and is left off the net-result column for those rows.
+
+<Callout type="tip" title="Use this with Regret">
+  Transfers shows you what happened. [Transfer Regret](/help/reading-the-app/regret) ranks the same moves by how badly they aged. Open both side-by-side after a chaotic gameweek.
+</Callout>
+
+## Refresh cadence
+
+Transfers data is fetched on a longer cycle than live points — typically every 5 minutes — because it only changes at the gameweek deadline. The "refreshing…" pill appears when the cached value is older than that.

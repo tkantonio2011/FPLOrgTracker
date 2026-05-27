@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   PLATFORM_NAME,
@@ -99,6 +100,14 @@ function SignInForm() {
           </form>
         )}
       </div>
+
+      {/* 005-public-signup: adjacent link to the self-sign-up surface. */}
+      <p className="mt-4 text-center text-sm text-white/80">
+        Don&apos;t have a league yet?{" "}
+        <Link href="/sign-up" className="text-[#00ff87] font-semibold hover:underline">
+          Create one →
+        </Link>
+      </p>
     </div>
   );
 }

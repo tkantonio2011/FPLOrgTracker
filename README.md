@@ -88,6 +88,16 @@ Two structural tests pin the architecture's load-bearing invariants:
 - `tests/unit/branding/no-industry-references.test.ts` — `src/` may not
   contain any hard-coded industry/company references (SC-004 verifier).
 
+## UAT
+
+A separate UAT environment runs alongside production on its own EC2 instance,
+gated by an env-var allow-list and visually marked with a yellow banner on
+every page. The same release artefacts deploy to either environment.
+
+- Runbook: [`specs/004-uat-deployment/quickstart.md`](specs/004-uat-deployment/quickstart.md)
+- Contracts: [`specs/004-uat-deployment/contracts/`](specs/004-uat-deployment/contracts/)
+- Operator scripts: [`scripts/uat/README.md`](scripts/uat/README.md)
+
 ## Documentation
 
 | Doc | Purpose |
@@ -97,5 +107,6 @@ Two structural tests pin the architecture's load-bearing invariants:
 | [`specs/002-multi-league-platform/data-model.md`](specs/002-multi-league-platform/data-model.md) | Schema, entity invariants, audit event catalog |
 | [`specs/002-multi-league-platform/quickstart.md`](specs/002-multi-league-platform/quickstart.md) | Operator runbook + dev setup |
 | [`specs/002-multi-league-platform/contracts/`](specs/002-multi-league-platform/contracts/) | Auth, league, and platform endpoint contracts |
+| [`specs/004-uat-deployment/`](specs/004-uat-deployment/) | UAT environment spec, plan, contracts, runbook |
 | [`prisma/migrations/002_multi_league/rollback.md`](prisma/migrations/002_multi_league/rollback.md) | Restore-from-backup procedure |
 | [`CHANGELOG.md`](CHANGELOG.md) | Release-by-release history |

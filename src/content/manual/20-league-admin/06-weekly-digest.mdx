@@ -1,0 +1,85 @@
+---
+title: Sending the weekly digest
+audience: admin
+summary: Trigger a GW-summary email to every member with a configured email address.
+lastUpdated: 2026-05-18
+featurePagePath: /l/[leagueSlug]/admin/digest
+relatedTopics:
+  - /help/league-admin/league-settings
+  - /help/league-admin/editing-members
+---
+
+The weekly digest is a one-click email that summarises the just-completed gameweek for your league. It covers the GW winner, loser, best and worst captain, biggest bench waste, and an AI-generated per-manager paragraph that flavours the stats with whatever tone you've set on your digest prompt.
+
+<AnnotatedImage src="weekly-digest/page.png" caption="The Digest admin page with the Send button, configuration banner, and the most-recent-send timestamp." />
+
+## Required configuration
+
+Before you can send a digest, three things must be set up at the platform level:
+
+| Environment variable | Why |
+|---|---|
+| `SMTP_HOST` | The outbound mail server. |
+| `SMTP_PORT` | Usually 587 for STARTTLS. |
+| `SMTP_USER` / `SMTP_PASS` | Auth credentials. |
+| `SMTP_FROM` | The sender displayed in the email. |
+
+If any are missing, the Digest admin page shows a red "SMTP not configured" banner and the Send button is disabled. Ask a Super Admin to fix the environment variables.
+
+You'll also want `APP_URL` set to your deployment's public URL so the email footer links back to the right place.
+
+## How the digest is composed
+
+The digest has four parts:
+
+1. **Headline summary** — GW winner, loser, league average, best captain, worst captain, biggest bench waste.
+2. **Full league table** — every member's GW score and total, sorted by GW score.
+3. **Per-manager narratives** — for each member with an email and ≥1 GW score, the AI generates a 2-3 sentence paragraph referencing their actual stats, in whatever tone you've configured on the [digest prompt](/help/league-admin/league-settings#digest-prompt).
+4. **System notes** — chips played, double-gameweek flags, anything notable about the GW itself.
+
+## Sending
+
+<Steps>
+  <Step title="Open the Digest admin page">
+    Sidebar → Admin → Digest. The page shows the most recent successful send, the GW it covered, and the current configuration status.
+  </Step>
+  <Step title="Click the Send GW Digest Now button">
+    The button is disabled if SMTP isn't configured or if the AI provider (Groq) is unconfigured. Hover the disabled button for the specific reason.
+
+    On click, the app:
+    1. Reads the current GW from the FPL API.
+    2. Checks the digest cache — if this GW's content has already been generated, reuse it (saves AI tokens).
+    3. Otherwise, generate fresh narratives (one call per manager with an email, sequential with a 1-second gap to stay within Groq rate limits).
+    4. Cache the result against the GW number.
+    5. Send the email to every member's configured email address, all BCC'd.
+  </Step>
+  <Step title="Check the result">
+    On success: a green banner shows the number of recipients and the GW summary. On failure: a red banner with the actual error from the SMTP or Groq provider.
+  </Step>
+</Steps>
+
+## What members receive
+
+A single BCC'd email per send. Each recipient sees only their own address in the To field and the league's sender in From. Members without a configured email on their LeagueMembership are silently skipped — they're not in the recipient list at all.
+
+The email is HTML with a plain-text fallback. The HTML uses your league's name and logo (if set) in the header.
+
+<Callout type="warning" title="Re-sending the same GW">
+  Clicking Send twice in a row sends the same content twice — there's no de-duplication. The digest cache only saves on AI generation cost; it doesn't block the second send from going out. If you accidentally double-send, apologise in the group chat and move on.
+</Callout>
+
+## When to send
+
+There's no schedule — you trigger manually. The most common cadence is "Monday or Tuesday after the final fixture of the gameweek, once the points have stabilised". Sending too early means provisional bonus points and final scores may differ from what's in the email; sending too late dilutes the value.
+
+If you forget for a week, that's fine — the next send picks up the most recent completed GW, not any of the missed ones. The platform has no "send for GW X retroactively" affordance.
+
+## What if generation fails
+
+The most common failures:
+
+- **Groq rate-limit (429)** — too many tokens consumed in the past minute. Wait a minute and retry. The page surfaces the actual Groq error message.
+- **Groq daily quota exhausted** — the free tier has a daily cap. Wait until it resets (24-hour rolling window).
+- **SMTP timeout** — the mail server didn't respond. Check the server's status, try again.
+
+Failures don't burn the cache — if the first attempt failed midway, retrying picks up from where it left off (re-uses any narratives that did generate successfully).

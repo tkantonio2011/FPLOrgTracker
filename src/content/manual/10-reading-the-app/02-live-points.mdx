@@ -1,0 +1,42 @@
+---
+title: Live Points
+audience: member
+summary: Mid-gameweek tracker. Every manager's live score updated as fixtures play out.
+lastUpdated: 2026-05-18
+featurePagePath: /l/[leagueSlug]/live
+relatedTopics:
+  - /help/reading-the-app/standings
+  - /help/reading-the-app/captain-history
+---
+
+The Live Points page is what you have open in another tab on Saturday afternoons. It shows every manager's points as fixtures play out, including provisional bonus points, autosubs, and captain doublings — all the things the official FPL site shows on its own live page, but consolidated for your league.
+
+<AnnotatedImage src="live-points/overview.png" caption="The Live Points page mid-gameweek. Scores update on a short refresh cycle." />
+
+## What's on the page
+
+- **Live total** per manager — the same number you'd see on FPL's live page, computed against your league's roster.
+- **Players still to play** — count of starting-eleven players whose fixture hasn't kicked off yet.
+- **Provisional bonus** — the bonus points FPL is currently allocating; locks in at full-time of each match.
+- **Captain badge** — the captain pick and their live multiplier (×2 normal, ×3 Triple Captain).
+- **Chip indicator** — Bench Boost players are included in the live total; Triple Captain is reflected in the captain badge.
+
+## How fresh is "live"
+
+The page polls the FPL API on a short cycle (typically every 60 seconds during in-progress gameweeks). A "refreshing…" pill appears in the header whenever the cached value is more than ~60 seconds old; the data underneath swaps in once the refresh completes. You don't have to hit reload manually.
+
+When no gameweek is in progress (between deadline and the first kickoff, or after every fixture finishes), the page falls back to showing the most recent completed gameweek's points alongside an "All fixtures complete" banner.
+
+## Autosubs
+
+If your starter doesn't play (didn't appear in the matchday squad, or was an unused substitute who came on for a player who got 0 minutes), the FPL engine automatically substitutes in your highest-priority bench player who DID play. Those autosubs are reflected in the live total here as soon as FPL's API updates them — typically within minutes of the relevant fixture ending.
+
+<Callout type="note" title="Captain didn't play?">
+  If your captain doesn't appear in the matchday squad, your vice-captain becomes the live captain (×2). If neither plays, you get a single multiplier on whoever did. The live total reflects this automatically.
+</Callout>
+
+## What this page doesn't show
+
+- It doesn't show per-player breakdowns — go to the official FPL live page for that.
+- It doesn't show historical gameweeks — use [Standings](/help/reading-the-app/standings) with the GW selector instead.
+- It doesn't show fixture scores — go to [Fixtures](/help/reading-the-app/fixtures) for those.

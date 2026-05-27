@@ -1,3 +1,5 @@
+import nextMDX from "@next/mdx";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
@@ -16,6 +18,16 @@ const nextConfig = {
   outputFileTracingIncludes: {
     "/**": ["./node_modules/.prisma/client/**"],
   },
+  // MDX support for the in-app user manual (003-user-manual).
+  pageExtensions: ["ts", "tsx", "js", "jsx", "mdx"],
 };
 
-export default nextConfig;
+const withMDX = nextMDX({
+  extension: /\.mdx?$/,
+  options: {
+    remarkPlugins: [],
+    rehypePlugins: [],
+  },
+});
+
+export default withMDX(nextConfig);

@@ -27,6 +27,7 @@ import {
 import { fetchEntry, FplApiError } from "@/lib/fpl/client";
 import { issueInvitationToken } from "@/lib/auth/magic-link";
 import { sendInvitation } from "@/lib/auth/email";
+import { appOrigin } from "@/lib/auth/origin";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -182,7 +183,7 @@ export async function POST(req: NextRequest, ctx: { params: { leagueId: string }
         });
         invitationId = invitation.id;
         const token = await issueInvitationToken(invitation.id, body.email, ip);
-        const origin = req.nextUrl.origin;
+        const origin = appOrigin(req);
         const link = `${origin}/invitations/${token.plaintext}`;
         await sendInvitation(body.email, league.name, link);
         await logAuditEvent({

@@ -1,0 +1,60 @@
+---
+title: Troubleshooting sign-in
+audience: both
+summary: The magic-link didn't arrive, or arrived and didn't work. Here's the checklist.
+lastUpdated: 2026-05-18
+relatedTopics:
+  - /help/getting-started/magic-link
+---
+
+The magic-link flow is short, but a handful of things can go wrong. Work through this list in order.
+
+## The link never arrived
+
+<Steps>
+  <Step title="Check your spam / junk folder">
+    Magic-link emails are transactional, but spam filters are not perfect. Search your inbox for "FPL Tracker" or for the sender address your league uses. If you find it in spam, mark it "not spam" so future links land in the inbox.
+  </Step>
+  <Step title="Confirm you used the right email">
+    The platform only emails addresses that have a UserAccount or a pending invitation. If you signed in with the wrong email — for example a personal address when your invitation was sent to your work address — no email was ever sent. The sign-in form deliberately shows the same "if an account exists, we sent a link" message either way, to avoid revealing which addresses have accounts.
+
+    Ask your League Admin (or a Super Admin) to confirm which email is on your membership.
+  </Step>
+  <Step title="Wait 60 seconds">
+    Delivery is normally within ~30 seconds but can occasionally stretch to a minute. If nothing appears, request a fresh link by re-submitting the sign-in form.
+  </Step>
+  <Step title="Ask your admin to verify SMTP is configured">
+    In dev / staging environments, magic-links are printed to the server console instead of emailed. If your league deployment is on a host where SMTP is misconfigured, no email will go out. The admin can check the server logs to confirm.
+  </Step>
+</Steps>
+
+## The link arrived but doesn't work
+
+<Callout type="warning" title="Each link is single-use and 15-minute-expiry">
+  Clicking a magic-link a second time, or clicking it more than fifteen minutes after it was issued, won't sign you in — the token is intentionally one-shot and short-lived.
+</Callout>
+
+If you see a "Link expired" message:
+
+1. Just go back to `/sign-in` and request a fresh link. There's no penalty.
+2. If you suspect someone else clicked it first (e.g. you forwarded the email), sign out from any other device and request a new link.
+
+If you see "Link invalid" without ever clicking before:
+
+1. The email link may have been mangled by your mail client (some break long URLs across lines). Try copy-pasting the entire URL into your browser address bar manually.
+2. If still broken, request a fresh link from `/sign-in`.
+
+## I keep getting signed out
+
+Sessions last 30 days with a sliding window — every visit resets the clock. If you're being signed out repeatedly, the likely causes are:
+
+- **Cookie clearing** — browser privacy settings or extensions that wipe cookies on close.
+- **Multiple devices** — signing in on a new device doesn't sign you out elsewhere, but explicitly clicking "Sign out" in the sidebar invalidates every session you have, everywhere.
+- **30 days of inactivity** — if you genuinely haven't visited in a month, the session lapsed.
+
+## I lost access to my email
+
+The platform has no "I forgot my email" recovery. Email IS the credential. If you no longer have access to the email tied to your membership:
+
+1. Ask a League Admin to update your email on file via `/l/<slug>/admin/members`. They can change your address; you can then sign in via the new one.
+2. If you're the only admin and you've lost your own email access, ask a Super Admin to either change your email directly or to issue a fresh invitation to a recoverable address.

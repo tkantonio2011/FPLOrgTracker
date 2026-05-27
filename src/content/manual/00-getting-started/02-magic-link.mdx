@@ -1,0 +1,47 @@
+---
+title: Signing in with a magic-link
+audience: both
+summary: There are no passwords. Enter your email, click the link we send you, and you're in.
+lastUpdated: 2026-05-18
+relatedTopics:
+  - /help/getting-started/troubleshooting-sign-in
+  - /help/getting-started/accepting-an-invitation
+---
+
+Sign-in is passwordless. You enter your email on the sign-in page, we email you a one-time link, and clicking the link signs you in for the next thirty days on that device.
+
+There is no password to remember, no password to lose, no password to be stolen.
+
+## The flow
+
+<Steps>
+  <Step title="Open the sign-in page">
+    Visit `/sign-in` — or just visit any page on the app while signed out and you'll be redirected there. Enter the email associated with your league membership.
+  </Step>
+  <Step title="Check your inbox">
+    Within about thirty seconds, you should see an email titled "Sign in to FPL Tracker" from your league's configured sender address. It contains a single big "Sign in" button.
+
+    <AnnotatedImage src="magic-link/email.svg" caption="What the magic-link email looks like. The big button is the only thing you need to click." />
+  </Step>
+  <Step title="Click the link">
+    Clicking the button opens the app, validates the token, and signs you in. You'll land on the standings page of your league (or, if you belong to multiple leagues, the league chooser).
+  </Step>
+</Steps>
+
+## How long the link lives
+
+The magic-link is valid for **15 minutes** after it's sent and can only be used **once**. If you click it after that, or click it a second time, the app will tell you the link has expired and offer to send a fresh one.
+
+This window is deliberately short — magic-links are credentials, and a credential that lives forever is a credential someone can find later. Fifteen minutes is plenty for the round-trip from "request" to "click", and short enough that an intercepted link is useless soon after.
+
+<Callout type="warning" title="Don't forward the email">
+  Forwarding the link to someone else is the same as forwarding your password. If they click it before you, they're signed in as you and you're not. If you ever forward by accident, sign yourself out via the sidebar's "Sign out" button — that invalidates every session on every device — then request a fresh link.
+</Callout>
+
+## How long the session lives
+
+Once you're signed in, the session cookie lasts **30 days** with a sliding refresh — every visit resets the clock. You won't have to re-authenticate during normal use. You will have to re-authenticate after thirty days of inactivity, after explicitly signing out, or after clearing your browser cookies.
+
+## What if the link doesn't arrive?
+
+See [Troubleshooting sign-in](/help/getting-started/troubleshooting-sign-in). The short version: check your spam folder first, ask your league admin to confirm your email is on file, then ask for a fresh link.

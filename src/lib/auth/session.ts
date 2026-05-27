@@ -16,6 +16,19 @@ const TTL_DAYS = parseInt(process.env.SESSION_TTL_DAYS ?? "30", 10);
 export const SESSION_TTL_MS = TTL_DAYS * 24 * 60 * 60 * 1000;
 const SLIDE_THRESHOLD_MS = 60 * 60 * 1000; // 1 hour
 
+/**
+ * Whether the session cookie should carry the `Secure` attribute. Set by the
+ * operator via the COOKIE_SECURE env var (true ⇒ HTTPS-only). Defaults to
+ * false because the existing UAT / production deployments are HTTP-only; a
+ * Secure cookie over HTTP is silently dropped by the browser, so the operator
+ * must opt-in only when the site is actually served over TLS.
+ *
+ * Reading NODE_ENV is the wrong control here: a Next.js standalone build runs
+ * with NODE_ENV=production regardless of whether the actual deployment uses
+ * HTTPS, and that mismatch breaks magic-link sign-in on HTTP hosts.
+ */
+const COOKIE_SECURE = process.env.COOKIE_SECURE === "true";
+
 function hashToken(plaintext: string): string {
   return createHash("sha256").update(plaintext).digest("hex");
 }
@@ -56,7 +69,7 @@ export function setSessionCookie(res: NextResponse, plaintextToken: string, expi
     name: SESSION_COOKIE_NAME,
     value: plaintextToken,
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: COOKIE_SECURE,
     sameSite: "lax",
     path: "/",
     expires: expiresAt,
@@ -69,7 +82,7 @@ export function clearSessionCookie(res: NextResponse): void {
     name: SESSION_COOKIE_NAME,
     value: "",
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: COOKIE_SECURE,
     sameSite: "lax",
     path: "/",
     maxAge: 0,

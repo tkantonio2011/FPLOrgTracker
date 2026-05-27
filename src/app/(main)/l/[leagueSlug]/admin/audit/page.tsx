@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useLeague } from "@/components/league/LeagueProvider";
 
+import { HelpButton } from "@/components/manual/HelpButton";
 interface AuditEntry {
   id: string;
   action: string;
@@ -51,6 +52,7 @@ export default function LeagueAdminAuditPage() {
     <div className="space-y-5">
       <header>
         <h1 className="text-2xl font-bold text-slate-900">Audit log</h1>
+        <HelpButton topic="/help/league-admin/audit-log" />
         <p className="text-sm text-slate-500 mt-1">
           {total} event{total === 1 ? "" : "s"} recorded for this league
         </p>

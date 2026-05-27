@@ -9,6 +9,7 @@ import { SkeletonTable } from "@/components/ui/Skeleton";
 import { RefreshingPill } from "@/components/ui/RefreshingPill";
 import { useLeague } from "@/components/league/LeagueProvider";
 import { useFreshnessGate } from "@/lib/hooks/useFreshnessGate";
+import { HelpButton } from "@/components/manual/HelpButton";
 
 interface ManagerTitle {
   managerId: number;
@@ -106,6 +107,7 @@ export default function LeagueStandingsPage() {
             <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
             <p className="text-sm text-slate-400 mt-0.5">{league.name} — gameweek standings</p>
           </div>
+          <HelpButton topic="/help/reading-the-app/standings" />
           {showRefreshingPill && <RefreshingPill />}
         </div>
         {currentGw && (

@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { useLeague } from "@/components/league/LeagueProvider";
 
+import { HelpButton } from "@/components/manual/HelpButton";
 interface LuckBreakdown {
   captainLuck: number;
   benchLuck: number;
@@ -290,6 +291,7 @@ export default function LuckPage() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Lucky / Unlucky Ranking</h1>
+        <HelpButton topic="/help/reading-the-app/luck" />
         <p className="text-sm text-slate-400 mt-0.5">Who's been helped by the FPL gods — and who's been forsaken.</p>
       </div>
 

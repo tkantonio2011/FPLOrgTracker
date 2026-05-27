@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { useLeague } from "@/components/league/LeagueProvider";
 
+import { HelpButton } from "@/components/manual/HelpButton";
 const COLOURS = [
   "#7c3aed", "#059669", "#dc2626", "#d97706", "#2563eb",
   "#db2777", "#0891b2", "#65a30d", "#9333ea", "#ea580c",
@@ -190,6 +191,7 @@ export default function CaptainHistoryPage() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Captain History</h1>
+        <HelpButton topic="/help/reading-the-app/captain-history" />
         <p className="text-sm text-slate-400 mt-0.5">Who each manager captained each week and their running efficiency</p>
       </div>
 

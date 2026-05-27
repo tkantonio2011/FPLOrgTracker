@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLeague } from "@/components/league/LeagueProvider";
 
+import { HelpButton } from "@/components/manual/HelpButton";
 const POSITION_LABELS: Record<number, string> = { 1: "GK", 2: "DEF", 3: "MID", 4: "FWD" };
 const POSITION_COLOURS: Record<number, string> = {
   1: "bg-yellow-100 text-yellow-700",
@@ -132,6 +133,7 @@ export default function TransfersPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Transfer Activity</h1>
+          <HelpButton topic="/help/reading-the-app/transfers" />
           <p className="text-sm text-slate-400 mt-0.5">Who moved what before the deadline</p>
         </div>
         {data && data.availableGws.length > 0 && (

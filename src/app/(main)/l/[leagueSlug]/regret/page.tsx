@@ -15,6 +15,7 @@ import {
 } from "recharts";
 import { useLeague } from "@/components/league/LeagueProvider";
 
+import { HelpButton } from "@/components/manual/HelpButton";
 interface RegretTransfer {
   playerIn: { id: number; name: string; pts: number };
   playerOut: { id: number; name: string; pts: number };
@@ -354,6 +355,7 @@ export default function RegretPage() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Transfer Regret Tracker</h1>
+        <HelpButton topic="/help/reading-the-app/regret" />
         <p className="text-sm text-slate-400 mt-0.5">Did your transfers actually pay off? Find out.</p>
       </div>
 

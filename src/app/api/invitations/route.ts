@@ -23,6 +23,11 @@ import {
 import { issueInvitationToken } from "@/lib/auth/magic-link";
 import { sendInvitation } from "@/lib/auth/email";
 import { NotAuthorisedError } from "@/lib/authz/errors";
+import { appOrigin } from "@/lib/auth/origin";
+// Note: the 004 UAT allow-list gate that previously sat here was retired by
+// feature 005-public-signup (see 005 spec FR-017). The allow-list is no longer
+// an effective access control once anyone can self-signup; keeping it here
+// would have meant inviting your own UAT testers required maintaining a list.
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -92,7 +97,7 @@ export async function POST(req: NextRequest) {
     });
 
     const token = await issueInvitationToken(invitation.id, body.email, ip);
-    const link = `${req.nextUrl.origin}/invitations/${token.plaintext}`;
+    const link = `${appOrigin(req)}/invitations/${token.plaintext}`;
     await sendInvitation(body.email, resolved.league.name, link);
 
     await logAuditEvent({

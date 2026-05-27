@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import { useLeague } from "@/components/league/LeagueProvider";
 
+import { HelpButton } from "@/components/manual/HelpButton";
 interface LeagueMember {
   managerId: number;
   displayName: string | null;
@@ -509,6 +510,7 @@ export default function H2HPage() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">H2H Battle Simulator</h1>
+        <HelpButton topic="/help/reading-the-app/h2h" />
         <p className="text-sm text-slate-400 mt-0.5">Head-to-head record for every gameweek of the season</p>
       </div>
 
