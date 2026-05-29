@@ -75,6 +75,35 @@ native_path() {
   fi
 }
 
+# Convert /<letter>/path → /cygdrive/<letter>/path on Git Bash so cwRsync
+# (Cygwin-based) understands drive letters. No-op on WSL / Linux.
+cygdrive_path() {
+  if command -v cygpath &>/dev/null && [[ "$1" =~ ^/[a-zA-Z]/ ]]; then
+    echo "/cygdrive/${1:1}"
+  else
+    echo "$1"
+  fi
+}
+
+# rsync wrapper: Git Bash + cwRsync needs cygdrive paths and MSYS path-
+# conversion disabled (otherwise MSYS rewrites /tmp → C:\msys64\tmp,
+# and the `:` is parsed as host:path by rsync).
+do_rsync() {
+  if command -v cygpath &>/dev/null; then
+    local args=()
+    for a in "$@"; do
+      if [[ "$a" =~ ^/[a-zA-Z]/ ]]; then
+        args+=("/cygdrive/${a:1}")
+      else
+        args+=("$a")
+      fi
+    done
+    MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*" rsync "${args[@]}"
+  else
+    rsync "$@"
+  fi
+}
+
 EC2_HOST=""
 if [ -n "$DEPLOY_HOST_OVERRIDE" ]; then
   EC2_HOST="$DEPLOY_HOST_OVERRIDE"
@@ -108,7 +137,10 @@ if [[ "$KEY_FILE" == /mnt/* ]]; then
 fi
 
 SSH="ssh -i $KEY_FILE -o StrictHostKeyChecking=no -o ConnectTimeout=15"
-RSYNC_SSH="ssh -i $KEY_FILE -o StrictHostKeyChecking=no"
+# rsync invokes ssh in a Cygwin context (cwRsync), which can't read /d/...
+# paths. Use /cygdrive/d/... here so the spawned ssh can open the key file.
+RSYNC_KEY_FILE="$(cygdrive_path "$KEY_FILE")"
+RSYNC_SSH="ssh -i $RSYNC_KEY_FILE -o StrictHostKeyChecking=no"
 
 echo "==> Deploying to $EC2_USER@$EC2_HOST"
 echo ""
@@ -201,23 +233,23 @@ fi
 # ── 3. Upload build artifacts ─────────────────────────────────────────────────
 echo "==> Uploading to EC2..."
 
-rsync -az --delete \
+do_rsync -az --delete \
   --exclude=prisma/ \
   --exclude=.env.local \
   -e "$RSYNC_SSH" \
   "$PROJECT_DIR/.next/standalone/" "$EC2_USER@$EC2_HOST:$APP_DIR/"
 
-rsync -az --delete \
+do_rsync -az --delete \
   -e "$RSYNC_SSH" \
   "$PROJECT_DIR/.next/static/" "$EC2_USER@$EC2_HOST:$APP_DIR/.next/static/"
 
 if [ -d "$PROJECT_DIR/public" ]; then
-  rsync -az --delete \
+  do_rsync -az --delete \
     -e "$RSYNC_SSH" \
     "$PROJECT_DIR/public/" "$EC2_USER@$EC2_HOST:$APP_DIR/public/"
 fi
 
-rsync -az \
+do_rsync -az \
   -e "$RSYNC_SSH" \
   --exclude="*.db" --exclude="*.db-journal" --exclude="*.db-wal" \
   "$PROJECT_DIR/prisma/" "$EC2_USER@$EC2_HOST:$APP_DIR/prisma/"
