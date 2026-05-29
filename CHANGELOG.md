@@ -2,7 +2,7 @@
 
 All notable changes to the FPL Organisation Tracker are documented here.
 
-## vNEXT
+## v2.0.1 — 2026-05-27
 
 ### New Features
 - **Public sign-up for League Admins (005)** — Anyone can visit `/sign-up` and self-create a `UserAccount` + brand-new `League` with themselves as admin, without Super Admin intervention. Flow is deferred-creation, magic-link-verified: form submission verifies the FPL mini-league ID against the public FPL API (3-second budget; "no such league" rejects inline, FPL outage proceeds with the new league marked `mini_league_unverified`), then issues a self-signup `MagicLinkToken` carrying the desired league fields as JSON. Account, league, membership (role=admin, source=self_signup), and audit event are written atomically when the magic-link is clicked. Existing users hitting the signup form receive a regular sign-in link (no enumeration). Signed-in users get an in-app "Create another league" form at `/leagues/new` that creates the league synchronously — no magic-link round-trip. Sign-up shares the existing magic-link rate-limit buckets (5/min/email, 30/hr/email, 20/min/IP). Five new audit-event action codes (`league.created.self_signup`, `signup.rejected.{duplicate_email,duplicate_mini_league_id,rate_limited,fpl_api_no_such_league}`) make abuse patterns filterable from `/platform/audit`. Two additive schema columns: `magic_link_tokens.self_signup_payload` (JSON) and `leagues.mini_league_unverified` (boolean). **Side-effect**: the 004 UAT allow-list becomes a no-op gate after this ships (anyone can self-signup → now has an account → can sign in). Removal of the allow-list code is a recommended follow-up. See `specs/005-public-signup/`.
